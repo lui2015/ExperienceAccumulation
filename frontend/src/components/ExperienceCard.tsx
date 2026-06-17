@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Dropdown, Tooltip, App as AntdApp } from 'antd';
@@ -7,10 +9,12 @@ import {
   HolderOutlined,
   MoreOutlined,
   FileTextOutlined,
+  ShareAltOutlined,
 } from '@ant-design/icons';
 
 import { experienceApi } from '@/api';
 import type { ExperienceOut } from '@/api/types';
+import ShareModal from './ShareModal';
 
 interface Props {
   experience: ExperienceOut;
@@ -31,6 +35,15 @@ export default function ExperienceCard({ experience, draggable, onEdit, onDelete
     disabled: !draggable,
   });
   const { message } = AntdApp.useApp();
+  const { slug } = useParams<{ slug?: string }>();
+  const [shareOpen, setShareOpen] = useState(false);
+
+  // 构造分享 URL：当前域名 + base + /c/<slug>#exp-<id>
+  const shareUrl = (() => {
+    const base = (import.meta.env.BASE_URL || '/').replace(/\/+$/, '');
+    const path = slug ? `${base}/c/${slug}` : `${base}/`;
+    return `${window.location.origin}${path}#exp-${experience.id}`;
+  })();
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -156,9 +169,9 @@ export default function ExperienceCard({ experience, draggable, onEdit, onDelete
               )}
             </div>
 
-            {(onEdit || onDelete || draggable) && (
-              <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', gap: 2 }}>
-                {draggable && (
+            {/* 右侧操作区：拖拽、分享、菜单（访客也始终能看到分享按钮） */}
+            <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', gap: 2 }}>
+              {draggable && (
                   <Tooltip title="按住拖动排序">
                     <span
                       data-cy-drag-handle
@@ -181,6 +194,12 @@ export default function ExperienceCard({ experience, draggable, onEdit, onDelete
                     trigger={['click']}
                     menu={{
                       items: [
+                        {
+                          key: 'share',
+                          icon: <ShareAltOutlined />,
+                          label: '分享',
+                          onClick: () => setShareOpen(true),
+                        },
                         onEdit && {
                           key: 'edit',
                           icon: <EditOutlined />,
@@ -210,11 +229,34 @@ export default function ExperienceCard({ experience, draggable, onEdit, onDelete
                     </span>
                   </Dropdown>
                 )}
+                {/* 当无管理权限时（访客）依然展示分享按钮 */}
+                {!(onEdit || onDelete) && (
+                  <Tooltip title="分享">
+                    <span
+                      style={{
+                        cursor: 'pointer',
+                        padding: '4px 6px',
+                        color: 'var(--cy-text-faint)',
+                      }}
+                      onClick={() => setShareOpen(true)}
+                      onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--cy-neon-cyan)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--cy-text-faint)')}
+                    >
+                      <ShareAltOutlined />
+                    </span>
+                  </Tooltip>
+                )}
               </div>
-            )}
           </div>
         </div>
       </div>
+      <ShareModal
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        url={shareUrl}
+        title={experience.title}
+        summary={experience.summary}
+      />
     </div>
   );
 }
