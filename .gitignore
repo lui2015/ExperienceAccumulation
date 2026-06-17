@@ -52,3 +52,6 @@ backend/*.db-shm
 
 # TS 编译缓存
 *.tsbuildinfo
+
+# 本地部署临时打包目录
+.deploy_pkg*/
