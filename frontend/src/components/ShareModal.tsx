@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Tooltip, App as AntdApp } from 'antd';
+import { useEffect, useMemo, useState } from 'react';
+import { Modal, Tooltip, App as AntdApp, Spin } from 'antd';
 import {
   WechatOutlined,
   QqOutlined,
@@ -12,14 +12,13 @@ import {
 } from '@ant-design/icons';
 import QRCode from 'qrcode';
 
+import { experienceApi } from '@/api';
+
 interface ShareModalProps {
   open: boolean;
   onClose: () => void;
-  /** 分享的 URL（必须为完整 https URL，能被任意终端打开） */
-  url: string;
-  /** 分享标题，将拼到分享文案里 */
+  experienceId: string;
   title: string;
-  /** 摘要 */
   summary?: string | null;
 }
 
@@ -69,47 +68,62 @@ function ChannelButton({ icon, label, color, onClick, description }: ChannelButt
   );
 }
 
-export default function ShareModal({ open, onClose, url, title, summary }: ShareModalProps) {
+export default function ShareModal({
+  open,
+  onClose,
+  experienceId,
+  title,
+  summary,
+}: ShareModalProps) {
   const { message } = AntdApp.useApp();
-  const qrRef = useRef<HTMLCanvasElement>(null);
-  const [qrReady, setQrReady] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
+  const [qrDataUrl, setQrDataUrl] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const shareText = useMemo(() => {
     const s = summary?.trim();
     return s ? `${title} - ${s}` : title;
   }, [title, summary]);
 
-  // 渲染二维码
+  // 打开时：拉取长效分享 URL，并生成二维码（base64）
   useEffect(() => {
-    if (!open || !qrRef.current) return;
-    setQrReady(false);
-    QRCode.toCanvas(
-      qrRef.current,
-      url,
-      {
-        width: 196,
-        margin: 1,
-        color: {
-          dark: '#0a0e1a',
-          light: '#ffffff',
-        },
-        errorCorrectionLevel: 'M',
-      },
-      (err) => {
-        if (!err) setQrReady(true);
-      },
-    );
-  }, [open, url]);
+    if (!open) return;
+    let cancelled = false;
+    setLoading(true);
+    setShareUrl('');
+    setQrDataUrl('');
+    (async () => {
+      try {
+        const tk = await experienceApi.getShareToken(experienceId);
+        if (cancelled) return;
+        setShareUrl(tk.url);
+        const dataUrl = await QRCode.toDataURL(tk.url, {
+          width: 220,
+          margin: 1,
+          color: { dark: '#0a0e1a', light: '#ffffff' },
+          errorCorrectionLevel: 'M',
+        });
+        if (!cancelled) setQrDataUrl(dataUrl);
+      } catch {
+        if (!cancelled) message.error('生成分享链接失败，请重试');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, experienceId, message]);
 
   // 复制链接
   const copyLink = async () => {
+    if (!shareUrl) return;
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(shareUrl);
       message.success('链接已复制，可粘贴到微信/QQ 等聊天窗口');
     } catch {
-      // 兜底：选中文本
       const el = document.createElement('textarea');
-      el.value = url;
+      el.value = shareUrl;
       document.body.appendChild(el);
       el.select();
       try {
@@ -122,56 +136,73 @@ export default function ShareModal({ open, onClose, url, title, summary }: Share
     }
   };
 
-  // 系统原生分享（移动端可调起微信/QQ 等）
   const hasNativeShare =
-    typeof navigator !== 'undefined' && typeof (navigator as Navigator & { share?: unknown }).share === 'function';
+    typeof navigator !== 'undefined' &&
+    typeof (navigator as Navigator & { share?: unknown }).share === 'function';
 
   const nativeShare = async () => {
+    if (!shareUrl) return;
     try {
       await (navigator as Navigator & { share: (data: ShareData) => Promise<void> }).share({
         title,
         text: shareText,
-        url,
+        url: shareUrl,
       });
     } catch {
       /* 用户取消或浏览器不支持 */
     }
   };
 
-  // 各渠道
   const openWeibo = () => {
-    const u = `https://service.weibo.com/share/share.php?url=${encodeURIComponent(
-      url,
-    )}&title=${encodeURIComponent(shareText)}`;
-    window.open(u, '_blank', 'noopener,noreferrer');
+    if (!shareUrl) return;
+    window.open(
+      `https://service.weibo.com/share/share.php?url=${encodeURIComponent(
+        shareUrl,
+      )}&title=${encodeURIComponent(shareText)}`,
+      '_blank',
+      'noopener,noreferrer',
+    );
   };
 
   const openTwitter = () => {
-    const u = `https://twitter.com/intent/tweet?url=${encodeURIComponent(
-      url,
-    )}&text=${encodeURIComponent(shareText)}`;
-    window.open(u, '_blank', 'noopener,noreferrer');
+    if (!shareUrl) return;
+    window.open(
+      `https://twitter.com/intent/tweet?url=${encodeURIComponent(
+        shareUrl,
+      )}&text=${encodeURIComponent(shareText)}`,
+      '_blank',
+      'noopener,noreferrer',
+    );
   };
 
   const openTelegram = () => {
-    const u = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(
-      shareText,
-    )}`;
-    window.open(u, '_blank', 'noopener,noreferrer');
+    if (!shareUrl) return;
+    window.open(
+      `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(
+        shareText,
+      )}`,
+      '_blank',
+      'noopener,noreferrer',
+    );
   };
 
   const openQzone = () => {
-    const u = `https://sns.qzone.qq.com/cgi-bin/qzshare/cgi_qzshare_onekey?url=${encodeURIComponent(
-      url,
-    )}&title=${encodeURIComponent(title)}&desc=${encodeURIComponent(summary || '')}&summary=${encodeURIComponent(
-      summary || '',
-    )}`;
-    window.open(u, '_blank', 'noopener,noreferrer');
+    if (!shareUrl) return;
+    window.open(
+      `https://sns.qzone.qq.com/cgi-bin/qzshare/cgi_qzshare_onekey?url=${encodeURIComponent(
+        shareUrl,
+      )}&title=${encodeURIComponent(title)}&desc=${encodeURIComponent(
+        summary || '',
+      )}&summary=${encodeURIComponent(summary || '')}`,
+      '_blank',
+      'noopener,noreferrer',
+    );
   };
 
   const openMail = () => {
+    if (!shareUrl) return;
     const subject = encodeURIComponent(`分享：${title}`);
-    const body = encodeURIComponent(`${shareText}\n\n${url}`);
+    const body = encodeURIComponent(`${shareText}\n\n${shareUrl}`);
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
@@ -197,6 +228,7 @@ export default function ShareModal({ open, onClose, url, title, summary }: Share
           border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: 8,
           background: 'rgba(255,255,255,0.02)',
+          minHeight: 60,
         }}
       >
         <div
@@ -220,7 +252,7 @@ export default function ShareModal({ open, onClose, url, title, summary }: Share
             wordBreak: 'break-all',
           }}
         >
-          {url}
+          {loading ? '生成中…' : shareUrl}
         </div>
       </div>
 
@@ -239,8 +271,8 @@ export default function ShareModal({ open, onClose, url, title, summary }: Share
       >
         <div
           style={{
-            width: 196,
-            height: 196,
+            width: 220,
+            height: 220,
             background: '#fff',
             borderRadius: 6,
             padding: 4,
@@ -250,20 +282,25 @@ export default function ShareModal({ open, onClose, url, title, summary }: Share
             justifyContent: 'center',
           }}
         >
-          <canvas ref={qrRef} style={{ display: qrReady ? 'block' : 'none' }} />
-          {!qrReady && (
-            <span style={{ color: '#888', fontSize: 12 }}>生成中…</span>
+          {qrDataUrl ? (
+            <img
+              src={qrDataUrl}
+              alt="QR"
+              style={{ width: '100%', height: '100%', display: 'block' }}
+            />
+          ) : (
+            <Spin />
           )}
         </div>
         <div style={{ flex: 1, fontSize: 13, lineHeight: 1.7, color: 'var(--cy-text-dim, #aaa)' }}>
           <div style={{ color: 'var(--cy-neon-pink, #ff2ec3)', fontWeight: 600, marginBottom: 6 }}>
-            微信 / QQ 扫码分享
+            微信 / QQ 扫码即看
           </div>
           <div>1. 用微信或 QQ 扫一扫</div>
-          <div>2. 在打开的页面里点右上角「···」</div>
-          <div>3. 选择「发送给朋友」/「分享到朋友圈」/「分享到 QQ」</div>
+          <div>2. 直接打开内容详情，无需登录</div>
+          <div>3. 在打开页面右上角「···」可发送给朋友 / 朋友圈</div>
           <div style={{ marginTop: 8, fontSize: 11, color: 'var(--cy-text-faint, #666)' }}>
-            ※ 由于微信/QQ 限制，第三方网页无法直接拉起聊天窗口，扫码是最稳的姿势
+            ※ 链接长期有效，分享给任何人都可以一键打开查看
           </div>
         </div>
       </div>

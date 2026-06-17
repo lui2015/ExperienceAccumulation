@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.deps import get_current_user, require_owner
-from app.core.security import create_html_token
+from app.core.security import create_html_token, create_share_token
 from app.db.session import get_db
 from app.models._helpers import gen_uuid, utcnow
 from app.models.category import Category
@@ -272,3 +272,22 @@ def issue_html_token(
     token = create_html_token(exp.id, user_id=user.id)
     url = f"{settings.html_view_base_url.rstrip('/')}/files/html/{token}"
     return HtmlTokenOut(token=token, url=url, expires_in=settings.html_token_expire_minutes * 60)
+
+
+@router.get("/{exp_id}/share-token", response_model=HtmlTokenOut)
+def issue_share_token(
+    exp_id: str,
+    db: Annotated[Session, Depends(get_db)],
+    _: Annotated[User, Depends(require_owner)],
+) -> HtmlTokenOut:
+    """签发长期公开分享 Token（仅站主可签发）。
+    返回的 URL 任何人持有都可直接访问对应 HTML 详情，无需登录。
+    """
+    settings = get_settings()
+    exp = db.get(Experience, exp_id)
+    if not exp or exp.deleted_at is not None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "经验不存在")
+    ttl_days = 365
+    token = create_share_token(exp.id, ttl_days=ttl_days)
+    url = f"{settings.html_view_base_url.rstrip('/')}/files/html/{token}"
+    return HtmlTokenOut(token=token, url=url, expires_in=ttl_days * 86400)

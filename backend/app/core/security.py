@@ -47,6 +47,26 @@ def create_html_token(experience_id: str, *, user_id: str) -> str:
     return jwt.encode(payload, settings.secret_key, algorithm=_ALGORITHM)
 
 
+def create_share_token(experience_id: str, *, ttl_days: int = 365) -> str:
+    """签发长期公开分享 Token（与短 token 共用 type=html，files.py 仅校验 exp_id）。
+
+    与 create_html_token 不同的是：
+    - 不绑定 sub（user_id），任何人持 token 都可访问对应 HTML
+    - 默认有效期 365 天
+    """
+    settings = get_settings()
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": "share",
+        "exp_id": experience_id,
+        "iat": int(now.timestamp()),
+        "exp": int((now + timedelta(days=ttl_days)).timestamp()),
+        "type": "html",
+        "scope": "share",
+    }
+    return jwt.encode(payload, settings.secret_key, algorithm=_ALGORITHM)
+
+
 def decode_token(token: str) -> dict[str, Any]:
     settings = get_settings()
     return jwt.decode(token, settings.secret_key, algorithms=[_ALGORITHM])

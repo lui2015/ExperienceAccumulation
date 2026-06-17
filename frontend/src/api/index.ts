@@ -71,6 +71,8 @@ export const experienceApi = {
   reorder: (items: MoveItem[]) => http.patch('/experiences/reorder', { items }),
   getHtmlToken: (id: string) =>
     http.get<HtmlTokenOut>(`/experiences/${id}/html-token`).then((r) => r.data),
+  getShareToken: (id: string) =>
+    http.get<HtmlTokenOut>(`/experiences/${id}/share-token`).then((r) => r.data),
 };
 
 // ===== Visitors =====

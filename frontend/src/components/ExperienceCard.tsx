@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Dropdown, Tooltip, App as AntdApp } from 'antd';
@@ -35,15 +34,7 @@ export default function ExperienceCard({ experience, draggable, onEdit, onDelete
     disabled: !draggable,
   });
   const { message } = AntdApp.useApp();
-  const { slug } = useParams<{ slug?: string }>();
   const [shareOpen, setShareOpen] = useState(false);
-
-  // 构造分享 URL：当前域名 + base + /c/<slug>#exp-<id>
-  const shareUrl = (() => {
-    const base = (import.meta.env.BASE_URL || '/').replace(/\/+$/, '');
-    const path = slug ? `${base}/c/${slug}` : `${base}/`;
-    return `${window.location.origin}${path}#exp-${experience.id}`;
-  })();
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -253,7 +244,7 @@ export default function ExperienceCard({ experience, draggable, onEdit, onDelete
       <ShareModal
         open={shareOpen}
         onClose={() => setShareOpen(false)}
-        url={shareUrl}
+        experienceId={experience.id}
         title={experience.title}
         summary={experience.summary}
       />
