@@ -207,19 +207,7 @@ export default function MainLayout() {
           />
         </div>
 
-        {!isMobile && (
-          <div
-            style={{
-              flex: 1,
-              display: 'flex',
-              justifyContent: 'center',
-              padding: '0 24px',
-              minWidth: 0,
-            }}
-          >
-            <GlobalSearch />
-          </div>
-        )}
+        {!isMobile && <div style={{ flex: 1 }} />}
 
         {/* 桌面端：用户身份 + 设置 Dropdown */}
         {!isMobile && user && (
@@ -270,6 +258,32 @@ export default function MainLayout() {
           width: '100%',
         }}
       >
+        {/* 全局搜索：桌面端放在内容区顶部，作为页面级工具条 */}
+        {!isMobile && (
+          <div
+            style={{
+              marginBottom: 20,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+            }}
+          >
+            <span
+              style={{
+                fontFamily: 'var(--cy-font-mono)',
+                fontSize: 11,
+                color: 'var(--cy-neon-cyan)',
+                letterSpacing: '0.2em',
+                flex: '0 0 auto',
+              }}
+            >
+              ⌕ SEARCH
+            </span>
+            <div style={{ flex: 1, maxWidth: 560 }}>
+              <GlobalSearch fullWidth />
+            </div>
+          </div>
+        )}
         <Outlet />
       </Content>
 
