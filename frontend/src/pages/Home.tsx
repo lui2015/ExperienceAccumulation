@@ -355,21 +355,6 @@ export default function HomePage() {
 
   return (
     <div>
-      <div
-        style={{
-          fontFamily: 'var(--cy-font-mono)',
-          fontSize: 12,
-          color: 'var(--cy-text-faint)',
-          marginBottom: 18,
-          letterSpacing: '0.16em',
-        }}
-      >
-        <span style={{ color: 'var(--cy-neon-cyan)' }}>$</span> ls ./knowledge --tree
-        <span className="cy-blink" style={{ marginLeft: 8 }}>
-          ▍
-        </span>
-      </div>
-
       <Tabs
         className="cy-tabs"
         activeKey={activeCat?.id}
