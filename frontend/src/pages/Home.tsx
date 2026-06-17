@@ -21,6 +21,7 @@ import { useAuthStore } from '@/store/auth';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import GroupSection from '@/components/GroupSection';
 import ExperienceDrawer from '@/components/ExperienceDrawer';
+import EmojiPicker from '@/components/EmojiPicker';
 
 const NONE_DROPPABLE = 'group:__none__';
 const NONE_KEY = '__none__';
@@ -495,7 +496,7 @@ export default function HomePage() {
             <Input placeholder="例：仓位管理 / 估值方法 / 复盘记录" maxLength={64} />
           </Form.Item>
           <Form.Item name="icon" label="图标（emoji，选填）">
-            <Input placeholder="例：📐" maxLength={4} />
+            <EmojiPicker placeholder="点左侧选择，或手动输入" />
           </Form.Item>
         </Form>
       </Modal>

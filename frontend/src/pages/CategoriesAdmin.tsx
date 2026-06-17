@@ -39,6 +39,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { categoryApi, groupApi } from '@/api';
 import type { CategoryOut, GroupOut } from '@/api/types';
 import { useIsMobile } from '@/hooks/useMediaQuery';
+import EmojiPicker from '@/components/EmojiPicker';
 
 /* ============================ 分类行（可拖拽） ============================ */
 
@@ -343,7 +344,7 @@ function GroupManager({ category }: { category: CategoryOut }) {
             <Input placeholder="例：仓位管理" maxLength={64} />
           </Form.Item>
           <Form.Item name="icon" label="图标 (emoji)">
-            <Input placeholder="📐" maxLength={4} />
+            <EmojiPicker placeholder="点左侧选择，或手动输入" />
           </Form.Item>
         </Form>
       </Modal>
@@ -525,7 +526,7 @@ export default function CategoriesAdminPage() {
             <Input placeholder="例：reading" />
           </Form.Item>
           <Form.Item name="icon" label="图标（emoji）">
-            <Input placeholder="📚" maxLength={4} />
+            <EmojiPicker placeholder="点左侧选择，或手动输入" />
           </Form.Item>
         </Form>
       </Modal>
