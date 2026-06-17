@@ -14,6 +14,7 @@ import {
 import { useAuthStore } from '@/store/auth';
 import { authApi } from '@/api';
 import { useIsMobile } from '@/hooks/useMediaQuery';
+import GlobalSearch from '@/components/GlobalSearch';
 
 const { Header, Content } = Layout;
 
@@ -206,7 +207,19 @@ export default function MainLayout() {
           />
         </div>
 
-        {!isMobile && <div style={{ flex: 1 }} />}
+        {!isMobile && (
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              justifyContent: 'center',
+              padding: '0 24px',
+              minWidth: 0,
+            }}
+          >
+            <GlobalSearch />
+          </div>
+        )}
 
         {/* 桌面端：用户身份 + 设置 Dropdown */}
         {!isMobile && user && (
@@ -269,6 +282,9 @@ export default function MainLayout() {
         width={Math.min(320, typeof window !== 'undefined' ? window.innerWidth : 320)}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ marginBottom: 4 }}>
+            <GlobalSearch fullWidth compact />
+          </div>
           <Button block size="large" icon={<HomeOutlined />} onClick={() => goAndClose('/')}>
             首页
           </Button>

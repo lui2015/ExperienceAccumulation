@@ -13,6 +13,7 @@ from app.models.group import Group
 from app.models.user import User
 from app.schemas.category import ReorderIn
 from app.schemas.group import GroupCreate, GroupOut, GroupUpdate
+from app.services import search as search_svc
 
 router = APIRouter(prefix="/groups", tags=["groups"])
 
@@ -89,6 +90,24 @@ def update_group(
         if dup:
             raise HTTPException(status.HTTP_409_CONFLICT, "同分类下已存在同名分组")
         g.name = payload.name
+        # 改名后，刷新该分组下所有经验的 FTS 索引（group_name 列）
+        affected = (
+            db.query(Experience)
+            .filter(Experience.group_id == gid, Experience.deleted_at.is_(None))
+            .all()
+        )
+        for e in affected:
+            html_text = (
+                search_svc.extract_text_from_file(e.html_path) if e.html_path else ""
+            )
+            search_svc.upsert_index(
+                db,
+                experience_id=e.id,
+                title=e.title,
+                summary=e.summary,
+                group_id=e.group_id,
+                html_text=html_text,
+            )
     if payload.icon is not None:
         g.icon = payload.icon
     db.commit()

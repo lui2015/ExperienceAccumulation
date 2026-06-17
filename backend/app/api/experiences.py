@@ -17,6 +17,7 @@ from app.models.group import Group
 from app.models.user import User
 from app.schemas.experience import ExperienceOut, HtmlTokenOut, MoveItem
 from app.services import storage as storage_svc
+from app.services import search as search_svc
 from app.services.ordering import next_experience_order
 
 router = APIRouter(prefix="/experiences", tags=["experiences"])
@@ -106,6 +107,18 @@ def create_experience(
     db.add(exp)
     db.commit()
     db.refresh(exp)
+
+    # 建索引
+    html_text = search_svc.extract_text_from_file(html_path)
+    search_svc.upsert_index(
+        db,
+        experience_id=exp.id,
+        title=exp.title,
+        summary=exp.summary,
+        group_id=exp.group_id,
+        html_text=html_text,
+    )
+    db.commit()
     return _to_out(exp, settings)
 
 
@@ -160,6 +173,18 @@ def update_experience(
 
     db.commit()
     db.refresh(exp)
+
+    # 同步索引（标题/简介/分组/HTML 任何变化都重建该条索引）
+    html_text = search_svc.extract_text_from_file(exp.html_path) if exp.html_path else ""
+    search_svc.upsert_index(
+        db,
+        experience_id=exp.id,
+        title=exp.title,
+        summary=exp.summary,
+        group_id=exp.group_id,
+        html_text=html_text,
+    )
+    db.commit()
     return _to_out(exp, settings)
 
 
@@ -206,17 +231,32 @@ def reorder_experiences(
     ids = [it.id for it in payload.items]
     rows = db.query(Experience).filter(Experience.id.in_(ids)).all()
     by_id = {e.id: e for e in rows}
+    changed_group: list[Experience] = []
     for it in payload.items:
         e = by_id.get(it.id)
         if not e:
             continue
         if it.group_id is not None:
-            # 校验目标分组属于同分类
             _check_group(db, it.group_id, e.category_id)
-            e.group_id = it.group_id
-        # 注意：MoveItem.group_id is None 时不动；要清空请单独走 update
+            if e.group_id != it.group_id:
+                e.group_id = it.group_id
+                changed_group.append(e)
         e.order = it.order
     db.commit()
+
+    # 分组变更 → 重建索引（group_name 列要更新）
+    for e in changed_group:
+        html_text = search_svc.extract_text_from_file(e.html_path) if e.html_path else ""
+        search_svc.upsert_index(
+            db,
+            experience_id=e.id,
+            title=e.title,
+            summary=e.summary,
+            group_id=e.group_id,
+            html_text=html_text,
+        )
+    if changed_group:
+        db.commit()
 
 
 @router.get("/{exp_id}/html-token", response_model=HtmlTokenOut)

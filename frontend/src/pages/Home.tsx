@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Empty, Tabs, Button, Form, Input, Modal, Space, Spin, App as AntdApp } from 'antd';
 import { PlusOutlined, FolderAddOutlined } from '@ant-design/icons';
@@ -51,6 +51,7 @@ function getBucketKeyOf(id: UniqueIdentifier, buckets: Record<string, Experience
 
 export default function HomePage() {
   const { slug } = useParams<{ slug?: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const isOwner = useAuthStore((s) => s.isOwner)();
   const qc = useQueryClient();
@@ -93,6 +94,30 @@ export default function HomePage() {
   useEffect(() => {
     if (expQ.data && groups) setBuckets(buildBuckets(expQ.data, groups));
   }, [expQ.data, groups]);
+
+  // 处理 hash：#exp-{id} → 滚动到对应卡片并短暂高亮
+  useEffect(() => {
+    if (!location.hash || !expQ.data) return;
+    const m = location.hash.match(/^#exp-([0-9a-f]+)$/i);
+    if (!m) return;
+    const targetId = `exp-${m[1]}`;
+    // 等待 DOM 渲染完成
+    const t = setTimeout(() => {
+      const el = document.getElementById(targetId);
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const card = el.querySelector('.cy-card') as HTMLElement | null;
+      if (card) {
+        card.style.transition = 'box-shadow 0.3s ease, transform 0.3s ease';
+        card.style.boxShadow =
+          '0 0 0 2px var(--cy-neon-pink), 0 0 40px rgba(255, 46, 195, 0.6)';
+        setTimeout(() => {
+          card.style.boxShadow = '';
+        }, 1800);
+      }
+    }, 200);
+    return () => clearTimeout(t);
+  }, [location.hash, expQ.data]);
 
   // 4) 拖拽（PC：鼠标移动 6px 激活；移动：长按 250ms + 容忍 5px 激活）
   const sensors = useSensors(

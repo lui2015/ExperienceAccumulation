@@ -80,3 +80,24 @@ export interface MoveItem {
   order: number;
   group_id?: string | null;
 }
+
+// ===== Search =====
+export interface SearchHit {
+  experience_id: string;
+  title: string;
+  summary: string | null;
+  snippet: string; // 含 <mark>...</mark> 高亮（仅来源于受信元数据/正文，前端可安全渲染）
+  score: number;
+  category_id: string;
+  category_slug: string;
+  category_name: string;
+  group_id: string | null;
+  group_name: string | null;
+}
+
+export interface SearchResponse {
+  query: string;
+  mode: 'meta' | 'content';
+  total: number;
+  hits: SearchHit[];
+}

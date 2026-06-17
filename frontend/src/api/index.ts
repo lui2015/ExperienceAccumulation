@@ -8,6 +8,7 @@ import type {
   ManagedUserOut,
   MoveItem,
   ReorderItem,
+  SearchResponse,
   UserOut,
   VisitorCreatedOut,
   VisitorOut,
@@ -102,4 +103,12 @@ export const userApi = {
     },
   ) => http.patch<ManagedUserCreatedOut>(`/users/${id}`, data).then((r) => r.data),
   remove: (id: string) => http.delete(`/users/${id}`),
+};
+
+// ===== Search =====
+export const searchApi = {
+  query: (q: string, mode: 'meta' | 'content' = 'meta', limit = 30) =>
+    http
+      .get<SearchResponse>('/search', { params: { q, mode, limit } })
+      .then((r) => r.data),
 };

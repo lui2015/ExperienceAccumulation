@@ -52,7 +52,7 @@ export default function ExperienceCard({ experience, draggable, onEdit, onDelete
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes}>
+    <div ref={setNodeRef} style={style} {...attributes} id={`exp-${experience.id}`}>
       <div className="cy-card" onClick={openHtml} style={{ cursor: 'pointer' }}>
         {/* 角标装饰 */}
         <span className="cy-corner tl" />
