@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily backup for Experience Accumulation
+
+[Timer]
+# 每天凌晨 3:00
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+Unit=experience-backup.service
+
+[Install]
+WantedBy=timers.target

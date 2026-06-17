@@ -1,0 +1,426 @@
+/* ==========================================================================
+   Cyberpunk Theme - Global
+   ========================================================================== */
+
+:root {
+  /* 基础调色板 */
+  --cy-bg-0: #06070d;          /* 最深背景 */
+  --cy-bg-1: #0b0d18;          /* 卡片背景 */
+  --cy-bg-2: #11142a;          /* 弹层/抽屉 */
+  --cy-bg-3: #161a36;          /* 输入框 */
+
+  --cy-line: rgba(124, 92, 255, 0.18);
+  --cy-line-strong: rgba(255, 46, 195, 0.55);
+
+  --cy-text: #e6e8ff;
+  --cy-text-dim: #8b90b8;
+  --cy-text-faint: #565b85;
+
+  /* 霓虹色 */
+  --cy-neon-pink: #ff2ec3;
+  --cy-neon-purple: #7c5cff;
+  --cy-neon-cyan: #00e5ff;
+  --cy-neon-lime: #c5ff00;
+  --cy-neon-yellow: #fde047;
+
+  /* 主品牌色（紫色） */
+  --cy-primary: #a259ff;
+  --cy-primary-glow: rgba(162, 89, 255, 0.55);
+
+  --cy-danger: #ff3d6e;
+
+  /* 玻璃 */
+  --cy-glass: rgba(20, 22, 50, 0.55);
+  --cy-glass-border: rgba(124, 92, 255, 0.35);
+
+  /* 字体 */
+  --cy-font-mono: 'JetBrains Mono', 'Fira Code', 'Roboto Mono',
+    'SF Mono', Menlo, Consolas, monospace;
+  --cy-font-sans: 'Inter', -apple-system, BlinkMacSystemFont,
+    'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+html, body, #root {
+  height: 100%;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  font-family: var(--cy-font-sans);
+  color: var(--cy-text);
+  background: var(--cy-bg-0);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+/* 全局赛博背景：径向辉光 + 网格 + 扫描线 */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 0%, rgba(124, 92, 255, 0.25), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 90% 10%, rgba(255, 46, 195, 0.18), transparent 60%),
+    radial-gradient(ellipse 70% 60% at 50% 100%, rgba(0, 229, 255, 0.12), transparent 65%),
+    var(--cy-bg-0);
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(124, 92, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124, 92, 255, 0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, #000 30%, transparent 90%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, #000 30%, transparent 90%);
+}
+
+/* ==========================================================================
+   Scrollbars
+   ========================================================================== */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--cy-neon-purple), var(--cy-neon-pink));
+  border-radius: 999px;
+  border: 2px solid var(--cy-bg-0);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--cy-neon-pink), var(--cy-neon-cyan));
+}
+
+/* ==========================================================================
+   Selection
+   ========================================================================== */
+
+::selection {
+  background: var(--cy-neon-pink);
+  color: #06070d;
+}
+
+/* ==========================================================================
+   Reusable utility classes
+   ========================================================================== */
+
+/* 霓虹标题（带 glitch 阴影） */
+.cy-neon-title {
+  font-family: var(--cy-font-mono);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  background: linear-gradient(90deg, var(--cy-neon-cyan), var(--cy-neon-pink));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow:
+    0 0 24px rgba(255, 46, 195, 0.35),
+    0 0 4px rgba(0, 229, 255, 0.4);
+}
+
+/* 玻璃态卡片 */
+.cy-glass {
+  background: linear-gradient(180deg, rgba(20, 22, 50, 0.7), rgba(11, 13, 24, 0.7));
+  border: 1px solid var(--cy-glass-border);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* 卡片霓虹边角装饰 */
+.cy-card {
+  position: relative;
+  background: linear-gradient(180deg, rgba(22, 26, 54, 0.85), rgba(11, 13, 24, 0.9));
+  border: 1px solid rgba(124, 92, 255, 0.35);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+}
+.cy-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(120deg, transparent 30%, rgba(255, 46, 195, 0.08) 50%, transparent 70%);
+  opacity: 0;
+  transition: opacity .35s ease;
+}
+.cy-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--cy-neon-pink);
+  box-shadow:
+    0 0 0 1px rgba(255, 46, 195, 0.3),
+    0 10px 40px -10px rgba(255, 46, 195, 0.5),
+    0 0 60px -10px rgba(124, 92, 255, 0.4);
+}
+.cy-card:hover::before {
+  opacity: 1;
+}
+
+/* 角标装饰 */
+.cy-corner {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--cy-neon-cyan);
+  pointer-events: none;
+}
+.cy-corner.tl { top: 6px; left: 6px; border-right: none; border-bottom: none; }
+.cy-corner.tr { top: 6px; right: 6px; border-left: none; border-bottom: none; }
+.cy-corner.bl { bottom: 6px; left: 6px; border-right: none; border-top: none; }
+.cy-corner.br { bottom: 6px; right: 6px; border-left: none; border-top: none; }
+
+/* 扫描线效果（用于 cover 区域） */
+.cy-scanlines {
+  position: relative;
+  overflow: hidden;
+}
+.cy-scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(255, 255, 255, 0.04) 3px,
+    rgba(255, 255, 255, 0.04) 3px
+  );
+  mix-blend-mode: overlay;
+}
+
+/* glitch 文字（关键词高亮使用） */
+.cy-glitch {
+  position: relative;
+  display: inline-block;
+  color: var(--cy-text);
+}
+.cy-glitch::before,
+.cy-glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  overflow: hidden;
+}
+.cy-glitch::before {
+  color: var(--cy-neon-cyan);
+  transform: translate(-1px, 0);
+  clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
+  animation: cy-glitch-1 2.6s infinite linear alternate-reverse;
+  opacity: 0.9;
+}
+.cy-glitch::after {
+  color: var(--cy-neon-pink);
+  transform: translate(1px, 0);
+  clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
+  animation: cy-glitch-2 3.2s infinite linear alternate-reverse;
+  opacity: 0.9;
+}
+
+@keyframes cy-glitch-1 {
+  0%   { transform: translate(0, 0); }
+  20%  { transform: translate(-2px, 0); }
+  40%  { transform: translate(1px, 0); }
+  60%  { transform: translate(-1px, 0); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes cy-glitch-2 {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(2px, 0); }
+  50%  { transform: translate(-1px, 0); }
+  75%  { transform: translate(1px, 0); }
+  100% { transform: translate(0, 0); }
+}
+
+/* 闪烁光点 */
+@keyframes cy-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0.2; }
+}
+.cy-blink { animation: cy-blink 1.2s infinite; }
+
+/* ==========================================================================
+   AntD 覆盖（细节兜底）
+   ========================================================================== */
+
+/* 卡片外阴影更冷 */
+.ant-card.cy-card-card {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Tabs：胶囊霓虹 */
+.cy-tabs .ant-tabs-nav::before {
+  border-color: rgba(124, 92, 255, 0.18) !important;
+}
+.cy-tabs .ant-tabs-tab {
+  font-family: var(--cy-font-mono);
+  letter-spacing: 0.06em;
+  padding: 10px 20px !important;
+  margin: 0 6px 0 0 !important;
+  border-radius: 10px 10px 0 0;
+  transition: color .2s ease, text-shadow .2s ease;
+}
+.cy-tabs .ant-tabs-tab:hover {
+  color: var(--cy-neon-cyan) !important;
+}
+.cy-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--cy-neon-pink) !important;
+  text-shadow: 0 0 12px rgba(255, 46, 195, 0.6);
+}
+.cy-tabs .ant-tabs-ink-bar {
+  background: linear-gradient(90deg, var(--cy-neon-cyan), var(--cy-neon-pink)) !important;
+  height: 3px !important;
+  box-shadow: 0 0 14px var(--cy-neon-pink);
+  border-radius: 2px;
+}
+
+/* 按钮：主色辉光 */
+.ant-btn-primary {
+  background: linear-gradient(135deg, var(--cy-neon-purple), var(--cy-neon-pink)) !important;
+  border: none !important;
+  box-shadow: 0 0 18px rgba(255, 46, 195, 0.35) !important;
+  font-family: var(--cy-font-mono);
+  letter-spacing: 0.04em;
+}
+.ant-btn-primary:hover {
+  filter: brightness(1.15);
+  box-shadow: 0 0 24px rgba(255, 46, 195, 0.6) !important;
+}
+.ant-btn-primary:active {
+  filter: brightness(0.95);
+}
+
+.ant-btn-default {
+  background: rgba(20, 22, 50, 0.6) !important;
+  border: 1px solid rgba(124, 92, 255, 0.45) !important;
+  color: var(--cy-text) !important;
+  backdrop-filter: blur(8px);
+}
+.ant-btn-default:hover {
+  border-color: var(--cy-neon-cyan) !important;
+  color: var(--cy-neon-cyan) !important;
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.3);
+}
+
+.ant-btn-dangerous {
+  border-color: rgba(255, 61, 110, 0.55) !important;
+  color: var(--cy-danger) !important;
+}
+.ant-btn-dangerous:hover {
+  background: rgba(255, 61, 110, 0.1) !important;
+  box-shadow: 0 0 14px rgba(255, 61, 110, 0.45);
+}
+
+/* 输入框 */
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-input-password,
+.ant-select .ant-select-selector,
+.ant-input-number {
+  background: rgba(11, 13, 24, 0.7) !important;
+  border-color: rgba(124, 92, 255, 0.35) !important;
+  color: var(--cy-text) !important;
+}
+.ant-input:focus,
+.ant-input-focused,
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper-focused,
+.ant-select-focused .ant-select-selector {
+  border-color: var(--cy-neon-pink) !important;
+  box-shadow: 0 0 0 2px rgba(255, 46, 195, 0.2) !important;
+}
+
+/* Tag 默认色 */
+.ant-tag {
+  background: rgba(124, 92, 255, 0.12) !important;
+  border-color: rgba(124, 92, 255, 0.4) !important;
+  color: var(--cy-text-dim) !important;
+  font-family: var(--cy-font-mono);
+  letter-spacing: 0.04em;
+}
+
+/* Drawer / Modal 头部 */
+.ant-drawer-header,
+.ant-modal-header {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(124, 92, 255, 0.25) !important;
+}
+.ant-drawer-title,
+.ant-modal-title {
+  font-family: var(--cy-font-mono);
+  letter-spacing: 0.06em;
+  color: var(--cy-text) !important;
+}
+.ant-drawer-content,
+.ant-modal-content {
+  background: linear-gradient(180deg, rgba(17, 20, 42, 0.96), rgba(11, 13, 24, 0.98)) !important;
+  border: 1px solid rgba(124, 92, 255, 0.35);
+  box-shadow: 0 0 80px rgba(124, 92, 255, 0.25) !important;
+}
+
+/* Dropdown 菜单 */
+.ant-dropdown-menu {
+  background: rgba(17, 20, 42, 0.95) !important;
+  border: 1px solid rgba(124, 92, 255, 0.4) !important;
+  backdrop-filter: blur(12px);
+}
+
+/* Empty */
+.ant-empty-description {
+  color: var(--cy-text-dim) !important;
+  font-family: var(--cy-font-mono);
+}
+
+/* Upload Dragger */
+.ant-upload-drag {
+  background: rgba(11, 13, 24, 0.6) !important;
+  border: 1px dashed rgba(124, 92, 255, 0.5) !important;
+}
+.ant-upload-drag:hover {
+  border-color: var(--cy-neon-cyan) !important;
+}
+
+/* Table */
+.ant-table {
+  background: transparent !important;
+}
+.ant-table-thead > tr > th {
+  background: rgba(124, 92, 255, 0.1) !important;
+  color: var(--cy-text-dim) !important;
+  border-bottom: 1px solid rgba(124, 92, 255, 0.3) !important;
+  font-family: var(--cy-font-mono);
+  letter-spacing: 0.04em;
+}
+.ant-table-tbody > tr > td {
+  border-bottom: 1px solid rgba(124, 92, 255, 0.12) !important;
+}
+.ant-table-tbody > tr:hover > td {
+  background: rgba(124, 92, 255, 0.06) !important;
+}
+
+/* Switch 主色 */
+.ant-switch-checked {
+  background: linear-gradient(90deg, var(--cy-neon-purple), var(--cy-neon-pink)) !important;
+  box-shadow: 0 0 12px rgba(255, 46, 195, 0.4);
+}

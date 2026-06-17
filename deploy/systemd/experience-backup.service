@@ -1,0 +1,11 @@
+[Unit]
+Description=Experience Accumulation Daily Backup
+After=network.target
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/experience/backend
+EnvironmentFile=/var/www/experience/backend/.env
+ExecStart=/var/www/experience/backend/.venv/bin/python -m app.scripts.backup
