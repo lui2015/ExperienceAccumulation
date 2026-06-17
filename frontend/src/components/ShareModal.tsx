@@ -13,6 +13,7 @@ import {
 import QRCode from 'qrcode';
 
 import { experienceApi } from '@/api';
+import { useIsMobile } from '@/hooks/useMediaQuery';
 
 interface ShareModalProps {
   open: boolean;
@@ -28,9 +29,10 @@ interface ChannelButtonProps {
   color: string;
   onClick: () => void;
   description?: string;
+  compact?: boolean;
 }
 
-function ChannelButton({ icon, label, color, onClick, description }: ChannelButtonProps) {
+function ChannelButton({ icon, label, color, onClick, description, compact }: ChannelButtonProps) {
   return (
     <Tooltip title={description}>
       <button
@@ -41,10 +43,10 @@ function ChannelButton({ icon, label, color, onClick, description }: ChannelButt
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 6,
-          padding: '12px 4px',
+          gap: compact ? 4 : 6,
+          padding: compact ? '8px 2px' : '12px 4px',
           width: '100%',
-          minHeight: 86,
+          minHeight: compact ? 64 : 86,
           cursor: 'pointer',
           border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: 10,
@@ -61,8 +63,8 @@ function ChannelButton({ icon, label, color, onClick, description }: ChannelButt
           (e.currentTarget as HTMLButtonElement).style.boxShadow = '';
         }}
       >
-        <span style={{ fontSize: 26, color }}>{icon}</span>
-        <span style={{ fontSize: 12, letterSpacing: '0.04em' }}>{label}</span>
+        <span style={{ fontSize: compact ? 22 : 26, color }}>{icon}</span>
+        <span style={{ fontSize: compact ? 11 : 12, letterSpacing: '0.04em' }}>{label}</span>
       </button>
     </Tooltip>
   );
@@ -76,6 +78,7 @@ export default function ShareModal({
   summary,
 }: ShareModalProps) {
   const { message } = AntdApp.useApp();
+  const isMobile = useIsMobile();
   const [shareUrl, setShareUrl] = useState('');
   const [qrDataUrl, setQrDataUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -211,7 +214,8 @@ export default function ShareModal({
       open={open}
       onCancel={onClose}
       footer={null}
-      width={520}
+      width={isMobile ? '94vw' : 520}
+      centered={isMobile}
       title={
         <span style={{ letterSpacing: '0.08em' }}>
           <ShareAltOutlined style={{ marginRight: 8, color: 'var(--cy-neon-cyan, #00e5ff)' }} />
@@ -219,12 +223,13 @@ export default function ShareModal({
         </span>
       }
       destroyOnClose
+      styles={{ body: { maxHeight: isMobile ? '78vh' : 'unset', overflowY: 'auto' } }}
     >
       {/* 标题 + 链接 */}
       <div
         style={{
           padding: '10px 12px',
-          marginBottom: 16,
+          marginBottom: 14,
           border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: 8,
           background: 'rgba(255,255,255,0.02)',
@@ -256,14 +261,15 @@ export default function ShareModal({
         </div>
       </div>
 
-      {/* 二维码 + 微信/QQ 提示 */}
+      {/* 二维码 + 微信/QQ 提示：移动端竖排，PC 横排 */}
       <div
         style={{
           display: 'flex',
-          gap: 16,
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: isMobile ? 12 : 16,
           alignItems: 'center',
-          padding: 14,
-          marginBottom: 16,
+          padding: isMobile ? 12 : 14,
+          marginBottom: 14,
           border: '1px solid rgba(192,132,252,0.25)',
           borderRadius: 10,
           background: 'rgba(192,132,252,0.05)',
@@ -271,8 +277,8 @@ export default function ShareModal({
       >
         <div
           style={{
-            width: 220,
-            height: 220,
+            width: isMobile ? 180 : 220,
+            height: isMobile ? 180 : 220,
             background: '#fff',
             borderRadius: 6,
             padding: 4,
@@ -292,84 +298,107 @@ export default function ShareModal({
             <Spin />
           )}
         </div>
-        <div style={{ flex: 1, fontSize: 13, lineHeight: 1.7, color: 'var(--cy-text-dim, #aaa)' }}>
+        <div
+          style={{
+            flex: 1,
+            width: '100%',
+            fontSize: 13,
+            lineHeight: 1.7,
+            color: 'var(--cy-text-dim, #aaa)',
+            textAlign: isMobile ? 'center' : 'left',
+          }}
+        >
           <div style={{ color: 'var(--cy-neon-pink, #ff2ec3)', fontWeight: 600, marginBottom: 6 }}>
             微信 / QQ 扫码即看
           </div>
-          <div>1. 用微信或 QQ 扫一扫</div>
-          <div>2. 直接打开内容详情，无需登录</div>
-          <div>3. 在打开页面右上角「···」可发送给朋友 / 朋友圈</div>
-          <div style={{ marginTop: 8, fontSize: 11, color: 'var(--cy-text-faint, #666)' }}>
-            ※ 链接长期有效，分享给任何人都可以一键打开查看
-          </div>
+          {isMobile ? (
+            <div style={{ fontSize: 12 }}>
+              扫码或复制链接转发，对方无需登录即可查看
+            </div>
+          ) : (
+            <>
+              <div>1. 用微信或 QQ 扫一扫</div>
+              <div>2. 直接打开内容详情，无需登录</div>
+              <div>3. 在打开页面右上角「···」可发送给朋友 / 朋友圈</div>
+              <div style={{ marginTop: 8, fontSize: 11, color: 'var(--cy-text-faint, #666)' }}>
+                ※ 链接长期有效，分享给任何人都可以一键打开查看
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* 通道按钮 */}
+      {/* 通道按钮：移动端 4 列网格、按钮更紧凑 */}
       <div
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: 10,
+          gap: isMobile ? 8 : 10,
         }}
       >
-        <ChannelButton
-          icon={<LinkOutlined />}
-          label="复制链接"
-          color="#00e5ff"
-          onClick={copyLink}
-          description="复制后粘贴到任意聊天窗口"
-        />
-        <ChannelButton
-          icon={<WechatOutlined />}
-          label="微信"
-          color="#07c160"
-          onClick={() => {
-            void copyLink();
-            message.info('链接已复制，请粘贴到微信聊天窗口；或扫上方二维码');
-          }}
-          description="复制链接 + 引导扫码"
-        />
-        <ChannelButton
-          icon={<QqOutlined />}
-          label="QQ 空间"
-          color="#12b7f5"
-          onClick={openQzone}
-          description="跳转到 QQ 空间分享页"
-        />
-        <ChannelButton
-          icon={<WeiboOutlined />}
-          label="微博"
-          color="#e6162d"
-          onClick={openWeibo}
-        />
-        <ChannelButton
-          icon={<TwitterOutlined />}
-          label="Twitter"
-          color="#1d9bf0"
-          onClick={openTwitter}
-        />
-        <ChannelButton
-          icon={<SendOutlined />}
-          label="Telegram"
-          color="#26a5e4"
-          onClick={openTelegram}
-        />
-        <ChannelButton
-          icon={<MailOutlined />}
-          label="邮件"
-          color="#ffb84d"
-          onClick={openMail}
-        />
-        {hasNativeShare && (
-          <ChannelButton
-            icon={<ShareAltOutlined />}
-            label="系统分享"
-            color="#c084fc"
-            onClick={nativeShare}
-            description="调起手机系统分享面板（可直达微信/QQ）"
-          />
-        )}
+        {[
+          {
+            icon: <LinkOutlined />,
+            label: '复制链接',
+            color: '#00e5ff',
+            onClick: copyLink,
+            description: '复制后粘贴到任意聊天窗口',
+          },
+          {
+            icon: <WechatOutlined />,
+            label: '微信',
+            color: '#07c160',
+            onClick: () => {
+              void copyLink();
+              message.info('链接已复制，请粘贴到微信聊天窗口；或扫上方二维码');
+            },
+            description: '复制链接 + 引导扫码',
+          },
+          {
+            icon: <QqOutlined />,
+            label: 'QQ 空间',
+            color: '#12b7f5',
+            onClick: openQzone,
+            description: '跳转到 QQ 空间分享页',
+          },
+          {
+            icon: <WeiboOutlined />,
+            label: '微博',
+            color: '#e6162d',
+            onClick: openWeibo,
+          },
+          {
+            icon: <TwitterOutlined />,
+            label: 'Twitter',
+            color: '#1d9bf0',
+            onClick: openTwitter,
+          },
+          {
+            icon: <SendOutlined />,
+            label: 'Telegram',
+            color: '#26a5e4',
+            onClick: openTelegram,
+          },
+          {
+            icon: <MailOutlined />,
+            label: '邮件',
+            color: '#ffb84d',
+            onClick: openMail,
+          },
+          ...(hasNativeShare
+            ? [
+                {
+                  icon: <ShareAltOutlined />,
+                  label: '系统分享',
+                  color: '#c084fc',
+                  onClick: nativeShare,
+                  description: '调起手机系统分享面板（可直达微信/QQ）',
+                },
+              ]
+            : []),
+        ].map((c) => (
+          <ChannelButton key={c.label} {...c} compact={isMobile} />
+        ))}
       </div>
     </Modal>
   );
