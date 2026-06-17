@@ -107,10 +107,8 @@ export default function GroupSection({
       <SortableContext items={experiences.map((e) => e.id)} strategy={rectSortingStrategy}>
         <div
           ref={setNodeRef}
+          className="cy-grid-responsive"
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-            gap: 16,
             minHeight: 80,
             padding: 8,
             borderRadius: 10,

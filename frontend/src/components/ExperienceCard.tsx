@@ -36,6 +36,8 @@ export default function ExperienceCard({ experience, draggable, onEdit, onDelete
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
+    // 触屏：禁用浏览器默认手势（避免长按选中/弹菜单影响拖拽）
+    touchAction: draggable ? 'manipulation' : 'auto',
   };
 
   const openHtml = async () => {
@@ -157,13 +159,15 @@ export default function ExperienceCard({ experience, draggable, onEdit, onDelete
             {(onEdit || onDelete || draggable) && (
               <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', gap: 2 }}>
                 {draggable && (
-                  <Tooltip title="拖动排序">
+                  <Tooltip title="按住拖动排序">
                     <span
+                      data-cy-drag-handle
                       {...listeners}
                       style={{
                         cursor: 'grab',
                         padding: '4px 6px',
                         color: 'var(--cy-text-faint)',
+                        touchAction: 'none', // 关键：让 dnd-kit 的 TouchSensor 接管
                       }}
                       onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--cy-neon-cyan)')}
                       onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--cy-text-faint)')}

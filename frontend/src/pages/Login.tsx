@@ -36,8 +36,9 @@ export default function LoginPage() {
         className="cy-glass"
         style={{
           position: 'relative',
-          width: 420,
-          padding: '40px 36px 32px',
+          width: '100%',
+          maxWidth: 420,
+          padding: 'clamp(24px, 6vw, 40px) clamp(20px, 5vw, 36px) clamp(20px, 5vw, 32px)',
           borderRadius: 16,
           boxShadow:
             '0 0 0 1px rgba(255, 46, 195, 0.25), 0 30px 80px -20px rgba(124, 92, 255, 0.45)',
@@ -63,7 +64,7 @@ export default function LoginPage() {
           <h1
             className="cy-glitch cy-neon-title"
             data-text="EXPERIENCE.SYS"
-            style={{ fontSize: 30, margin: 0 }}
+            style={{ fontSize: 'clamp(22px, 6.5vw, 30px)', margin: 0 }}
           >
             EXPERIENCE.SYS
           </h1>

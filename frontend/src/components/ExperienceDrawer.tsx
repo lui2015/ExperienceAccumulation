@@ -5,6 +5,7 @@ import { useMutation } from '@tanstack/react-query';
 
 import { experienceApi } from '@/api';
 import type { CategoryOut, ExperienceOut, GroupOut } from '@/api/types';
+import { useIsMobile } from '@/hooks/useMediaQuery';
 
 interface Props {
   open: boolean;
@@ -30,6 +31,7 @@ export default function ExperienceDrawer({
   const [form] = Form.useForm();
   const isEdit = !!experience;
   const { message } = AntdApp.useApp();
+  const isMobile = useIsMobile();
 
   // 当前选择的分类（用于过滤分组下拉）
   const watchedCategoryId = Form.useWatch('category_id', form) ?? defaultCategoryId;
@@ -112,7 +114,7 @@ export default function ExperienceDrawer({
   return (
     <Drawer
       title={isEdit ? '编辑经验' : '新增经验'}
-      width={520}
+      width={isMobile ? '100vw' : 520}
       open={open}
       onClose={onClose}
       destroyOnClose

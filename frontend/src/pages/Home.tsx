@@ -6,6 +6,7 @@ import { PlusOutlined, FolderAddOutlined } from '@ant-design/icons';
 import {
   DndContext,
   PointerSensor,
+  TouchSensor,
   closestCorners,
   useSensor,
   useSensors,
@@ -17,6 +18,7 @@ import {
 import { categoryApi, experienceApi, groupApi } from '@/api';
 import type { ExperienceOut, GroupOut } from '@/api/types';
 import { useAuthStore } from '@/store/auth';
+import { useIsMobile } from '@/hooks/useMediaQuery';
 import GroupSection from '@/components/GroupSection';
 import ExperienceDrawer from '@/components/ExperienceDrawer';
 
@@ -92,8 +94,12 @@ export default function HomePage() {
     if (expQ.data && groups) setBuckets(buildBuckets(expQ.data, groups));
   }, [expQ.data, groups]);
 
-  // 4) 拖拽
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  // 4) 拖拽（PC：鼠标移动 6px 激活；移动：长按 250ms + 容忍 5px 激活）
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+  );
+  const isMobile = useIsMobile();
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
 
   const reorderMut = useMutation({
@@ -356,12 +362,21 @@ export default function HomePage() {
         }))}
         tabBarExtraContent={
           isOwner ? (
-            <Space>
-              <Button icon={<FolderAddOutlined />} onClick={() => setAddGroupOpen(true)}>
-                新增分组
+            <Space size={isMobile ? 4 : 8}>
+              <Button
+                icon={<FolderAddOutlined />}
+                onClick={() => setAddGroupOpen(true)}
+                size={isMobile ? 'small' : 'middle'}
+              >
+                {isMobile ? '' : '新增分组'}
               </Button>
-              <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-                新增经验
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={openCreate}
+                size={isMobile ? 'small' : 'middle'}
+              >
+                {isMobile ? '新增' : '新增经验'}
               </Button>
             </Space>
           ) : null

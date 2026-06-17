@@ -19,16 +19,118 @@ import dayjs from 'dayjs';
 import { userApi } from '@/api';
 import type { ManagedUserCreatedOut, ManagedUserOut } from '@/api/types';
 import { useAuthStore } from '@/store/auth';
+import { useIsMobile } from '@/hooks/useMediaQuery';
 
 const ROLE_OPTIONS = [
   { label: '站主 (Owner)', value: 'owner' },
   { label: '访客 (Visitor)', value: 'visitor' },
 ];
 
+/** 移动端用户卡片 */
+function UserMobileCard({
+  user,
+  isSelf,
+  onEdit,
+  onResetPwd,
+  onDelete,
+  onToggleStatus,
+}: {
+  user: ManagedUserOut;
+  isSelf: boolean;
+  onEdit: () => void;
+  onResetPwd: () => void;
+  onDelete: () => void;
+  onToggleStatus: (checked: boolean) => void;
+}) {
+  const isOwner = user.role === 'owner';
+  return (
+    <div
+      style={{
+        background: 'rgba(11, 13, 24, 0.55)',
+        border: '1px solid rgba(124, 92, 255, 0.25)',
+        borderRadius: 10,
+        padding: 14,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontFamily: 'var(--cy-font-mono)', fontWeight: 600, color: 'var(--cy-text)' }}>
+          {user.username}
+        </span>
+        {isOwner ? (
+          <Tag
+            style={{
+              marginInlineEnd: 0,
+              background: 'linear-gradient(90deg, var(--cy-neon-purple), var(--cy-neon-pink))',
+              color: '#06070d',
+              border: 'none',
+              fontWeight: 700,
+            }}
+          >
+            OWNER
+          </Tag>
+        ) : (
+          <Tag style={{ marginInlineEnd: 0 }}>VISITOR</Tag>
+        )}
+        {isSelf && (
+          <Tag color="cyan" style={{ marginInlineEnd: 0 }}>
+            你自己
+          </Tag>
+        )}
+        <div style={{ flex: 1 }} />
+        <Switch
+          checked={user.status === 'active'}
+          disabled={isSelf}
+          checkedChildren="启用"
+          unCheckedChildren="禁用"
+          size="small"
+          onChange={onToggleStatus}
+        />
+      </div>
+
+      {user.remark && (
+        <div style={{ marginTop: 8, color: 'var(--cy-text-dim)', fontSize: 13 }}>
+          {user.remark}
+        </div>
+      )}
+
+      <div
+        style={{
+          marginTop: 8,
+          fontFamily: 'var(--cy-font-mono)',
+          fontSize: 11,
+          color: 'var(--cy-text-faint)',
+          display: 'flex',
+          gap: 12,
+          flexWrap: 'wrap',
+        }}
+      >
+        <span>
+          上次登录：
+          {user.last_login_at ? dayjs(user.last_login_at).format('MM-DD HH:mm') : '未登录'}
+        </span>
+        <span>创建：{dayjs(user.created_at).format('YYYY-MM-DD')}</span>
+      </div>
+
+      <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
+        <Button size="small" icon={<EditOutlined />} onClick={onEdit}>
+          编辑
+        </Button>
+        <Button size="small" icon={<KeyOutlined />} onClick={onResetPwd}>
+          重置密码
+        </Button>
+        <Button size="small" danger icon={<DeleteOutlined />} disabled={isSelf} onClick={onDelete}>
+          删除
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function UsersAdminPage() {
   const qc = useQueryClient();
   const { modal, message } = AntdApp.useApp();
   const me = useAuthStore((s) => s.user);
+  const isMobile = useIsMobile();
 
   const { data, isLoading } = useQuery({ queryKey: ['users'], queryFn: userApi.list });
 
@@ -116,8 +218,57 @@ export default function UsersAdminPage() {
         </Button>
       </div>
 
-      <div className="cy-glass" style={{ borderRadius: 12, padding: 12 }}>
-        <Table<ManagedUserOut>
+      <div className="cy-glass" style={{ borderRadius: 12, padding: isMobile ? 8 : 12 }}>
+        {isMobile ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {(data ?? []).map((u) => (
+              <UserMobileCard
+                key={u.id}
+                user={u}
+                isSelf={u.id === me?.id}
+                onEdit={() => openEdit(u)}
+                onResetPwd={() =>
+                  modal.confirm({
+                    title: `重置 ${u.username} 的密码？`,
+                    content: '将生成一个 12 位随机密码，旧密码立即失效。',
+                    onOk: () =>
+                      updateMut.mutateAsync({
+                        id: u.id,
+                        data: { reset_password: true },
+                      }),
+                  })
+                }
+                onDelete={() =>
+                  modal.confirm({
+                    title: `删除账号 ${u.username}？`,
+                    content: '删除后该用户将无法登录，操作不可恢复。',
+                    okType: 'danger',
+                    onOk: () => removeMut.mutateAsync(u.id),
+                  })
+                }
+                onToggleStatus={(checked) =>
+                  updateMut.mutate({
+                    id: u.id,
+                    data: { status: checked ? 'active' : 'disabled' },
+                  })
+                }
+              />
+            ))}
+            {!isLoading && (data ?? []).length === 0 && (
+              <div
+                style={{
+                  textAlign: 'center',
+                  color: 'var(--cy-text-faint)',
+                  padding: '24px 0',
+                  fontFamily: 'var(--cy-font-mono)',
+                }}
+              >
+                ＜ NO_USERS ＞
+              </div>
+            )}
+          </div>
+        ) : (
+          <Table<ManagedUserOut>
           loading={isLoading}
           rowKey="id"
           dataSource={data ?? []}
@@ -237,6 +388,7 @@ export default function UsersAdminPage() {
             },
           ]}
         />
+        )}
       </div>
 
       {/* 新增账号 */}

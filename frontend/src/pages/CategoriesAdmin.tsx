@@ -22,6 +22,7 @@ import {
 import {
   DndContext,
   PointerSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
@@ -37,6 +38,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 import { categoryApi, groupApi } from '@/api';
 import type { CategoryOut, GroupOut } from '@/api/types';
+import { useIsMobile } from '@/hooks/useMediaQuery';
 
 /* ============================ 分类行（可拖拽） ============================ */
 
@@ -52,6 +54,7 @@ function CategoryRow({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `cat:${cat.id}`,
   });
+  const isMobile = useIsMobile();
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -65,29 +68,58 @@ function CategoryRow({
         ...style,
         display: 'flex',
         alignItems: 'center',
-        padding: '12px 16px',
+        padding: isMobile ? '10px 12px' : '12px 16px',
         borderRadius: 10,
         marginBottom: 10,
+        gap: isMobile ? 8 : 0,
       }}
       {...attributes}
     >
       <span
+        data-cy-drag-handle
         {...listeners}
-        style={{ cursor: 'grab', color: 'var(--cy-text-faint)', marginRight: 12 }}
+        style={{
+          cursor: 'grab',
+          color: 'var(--cy-text-faint)',
+          marginRight: isMobile ? 4 : 12,
+          touchAction: 'none',
+        }}
+        onClick={(e) => e.stopPropagation()}
       >
         <HolderOutlined />
       </span>
-      <span style={{ fontSize: 20, marginRight: 12 }}>{cat.icon ?? '📁'}</span>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontWeight: 600, color: 'var(--cy-text)' }}>{cat.name}</div>
+      <span style={{ fontSize: isMobile ? 18 : 20, marginRight: isMobile ? 8 : 12 }}>
+        {cat.icon ?? '📁'}
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            fontWeight: 600,
+            color: 'var(--cy-text)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {cat.name}
+        </div>
         <Tag style={{ marginInlineEnd: 0, marginTop: 4 }}>/{cat.slug}</Tag>
       </div>
-      <Space>
-        <Button icon={<EditOutlined />} onClick={onEdit}>
-          编辑
+      <Space size={isMobile ? 4 : 8} onClick={(e) => e.stopPropagation()}>
+        <Button
+          icon={<EditOutlined />}
+          size={isMobile ? 'small' : 'middle'}
+          onClick={onEdit}
+        >
+          {isMobile ? '' : '编辑'}
         </Button>
-        <Button danger icon={<DeleteOutlined />} onClick={onDelete}>
-          删除
+        <Button
+          danger
+          icon={<DeleteOutlined />}
+          size={isMobile ? 'small' : 'middle'}
+          onClick={onDelete}
+        >
+          {isMobile ? '' : '删除'}
         </Button>
       </Space>
     </div>
@@ -108,6 +140,7 @@ function GroupRow({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `grp:${g.id}`,
   });
+  const isMobile = useIsMobile();
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -120,30 +153,48 @@ function GroupRow({
         ...style,
         display: 'flex',
         alignItems: 'center',
-        padding: '10px 14px',
+        padding: isMobile ? '8px 10px' : '10px 14px',
         background: 'rgba(11, 13, 24, 0.55)',
         border: '1px solid rgba(124, 92, 255, 0.22)',
         borderRadius: 8,
         marginBottom: 8,
+        gap: isMobile ? 6 : 0,
       }}
       {...attributes}
     >
       <span
+        data-cy-drag-handle
         {...listeners}
-        style={{ cursor: 'grab', color: 'var(--cy-text-faint)', marginRight: 10, fontSize: 14 }}
+        style={{
+          cursor: 'grab',
+          color: 'var(--cy-text-faint)',
+          marginRight: isMobile ? 2 : 10,
+          fontSize: 14,
+          touchAction: 'none',
+        }}
       >
         <HolderOutlined />
       </span>
-      <span style={{ fontSize: 16, marginRight: 10 }}>{g.icon ?? '📂'}</span>
-      <div style={{ flex: 1, color: 'var(--cy-text)', fontFamily: 'var(--cy-font-mono)' }}>
+      <span style={{ fontSize: 16, marginRight: isMobile ? 6 : 10 }}>{g.icon ?? '📂'}</span>
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          color: 'var(--cy-text)',
+          fontFamily: 'var(--cy-font-mono)',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}
+      >
         {g.name}
       </div>
       <Space size={4}>
         <Button size="small" icon={<EditOutlined />} onClick={onEdit}>
-          编辑
+          {isMobile ? '' : '编辑'}
         </Button>
         <Button size="small" danger icon={<DeleteOutlined />} onClick={onDelete}>
-          删除
+          {isMobile ? '' : '删除'}
         </Button>
       </Space>
     </div>
@@ -173,7 +224,10 @@ function GroupManager({ category }: { category: CategoryOut }) {
     },
   });
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+  );
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
@@ -317,7 +371,10 @@ export default function CategoriesAdminPage() {
     },
   });
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+  );
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
