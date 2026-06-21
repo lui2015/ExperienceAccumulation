@@ -9,6 +9,7 @@ import LoginPage from '@/pages/Login';
 import HomePage from '@/pages/Home';
 import CategoriesAdminPage from '@/pages/CategoriesAdmin';
 import UsersAdminPage from '@/pages/UsersAdmin';
+import DataExportPage from '@/pages/DataExport';
 import MainLayout from '@/components/MainLayout';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -82,6 +83,14 @@ export default function App() {
           element={
             <RequireOwner>
               <UsersAdminPage />
+            </RequireOwner>
+          }
+        />
+        <Route
+          path="/admin/export"
+          element={
+            <RequireOwner>
+              <DataExportPage />
             </RequireOwner>
           }
         />

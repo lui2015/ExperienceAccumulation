@@ -1,7 +1,10 @@
 """经验文档管理路由。"""
+import io
+import zipfile
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -291,3 +294,58 @@ def issue_share_token(
     token = create_share_token(exp.id, ttl_days=ttl_days)
     url = f"{settings.html_view_base_url.rstrip('/')}/files/html/{token}"
     return HtmlTokenOut(token=token, url=url, expires_in=ttl_days * 86400)
+
+
+@router.get("/batch-download", include_in_schema=True)
+def batch_download_html(
+    ids: Annotated[list[str], Query()],
+    db: Annotated[Session, Depends(get_db)],
+    _: Annotated[User, Depends(require_owner)],
+) -> StreamingResponse:
+    """批量下载 HTML 文件（仅站主），将选中的经验 HTML 打包为 ZIP 返回。"""
+    if not ids:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "请选择至少一个经验")
+
+    stmt = select(Experience).where(
+        Experience.id.in_(ids),
+        Experience.deleted_at.is_(None),
+    )
+    exps = db.execute(stmt).scalars().all()
+
+    if not exps:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "未找到有效的经验")
+
+    # 按标题排序，文件名使用标题（去除不安全字符）
+    exps = sorted(exps, key=lambda e: e.title)
+
+    buf = io.BytesIO()
+    seen_names: dict[str, int] = {}
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for exp in exps:
+            abs_path = storage_svc.storage_path(exp.html_path)
+            if not abs_path.is_file():
+                continue
+
+            # 安全文件名：去除路径分隔符等危险字符，保留中文
+            safe_title = "".join(c for c in exp.title if c not in r'\/:*?"<>|')
+            safe_title = safe_title.strip() or exp.id
+            base = safe_title
+            if base in seen_names:
+                seen_names[base] += 1
+                arcname = f"{base} ({seen_names[base]}).html"
+            else:
+                seen_names[base] = 0
+                arcname = f"{base}.html"
+
+            zf.write(abs_path, arcname)
+
+    if seen_names:
+        # 有文件写入
+        buf.seek(0)
+        return StreamingResponse(
+            buf,
+            media_type="application/zip",
+            headers={"Content-Disposition": 'attachment; filename="experiences-html.zip"'},
+        )
+    else:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "所选经验暂无有效 HTML 文件")

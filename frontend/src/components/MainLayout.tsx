@@ -9,6 +9,7 @@ import {
   MenuOutlined,
   SettingOutlined,
   HomeOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 
 import { useAuthStore } from '@/store/auth';
@@ -114,6 +115,12 @@ export default function MainLayout() {
       icon: <TeamOutlined />,
       label: '用户管理',
       onClick: () => navigate('/admin/users'),
+    },
+    isOwner && {
+      key: 'export',
+      icon: <DownloadOutlined />,
+      label: '数据导出',
+      onClick: () => navigate('/admin/export'),
     },
     isOwner && { type: 'divider' as const },
     {
@@ -331,6 +338,14 @@ export default function MainLayout() {
                 onClick={() => goAndClose('/admin/users')}
               >
                 用户管理
+              </Button>
+              <Button
+                block
+                size="large"
+                icon={<DownloadOutlined />}
+                onClick={() => goAndClose('/admin/export')}
+              >
+                数据导出
               </Button>
             </>
           )}

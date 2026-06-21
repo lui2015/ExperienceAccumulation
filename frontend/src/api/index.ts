@@ -73,6 +73,14 @@ export const experienceApi = {
     http.get<HtmlTokenOut>(`/experiences/${id}/html-token`).then((r) => r.data),
   getShareToken: (id: string) =>
     http.get<HtmlTokenOut>(`/experiences/${id}/share-token`).then((r) => r.data),
+  /** 批量下载 HTML，返回 ZIP blob */
+  batchDownload: async (ids: string[]) => {
+    const params = ids.map((id) => `ids=${encodeURIComponent(id)}`).join('&');
+    const r = await http.get<Blob>(`/experiences/batch-download?${params}`, {
+      responseType: 'blob',
+    });
+    return r.data;
+  },
 };
 
 // ===== Visitors =====

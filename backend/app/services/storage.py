@@ -17,8 +17,13 @@ _IMAGE_SIGNATURES: dict[str, tuple[bytes, ...]] = {
 }
 
 
+_UTF8_BOM = b"\xef\xbb\xbf"
+
+
 def _ensure_html(content: bytes) -> None:
     """校验上传文件确实是 HTML（粗校验：去除 BOM/空白后以 < 开头，且能解析出标签）。"""
+    if content.startswith(_UTF8_BOM):
+        content = content[len(_UTF8_BOM):]
     head = content.lstrip()[:1024].lower()
     if not head.startswith(b"<"):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "文件不是合法的 HTML（未以 < 开头）")
