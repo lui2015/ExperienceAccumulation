@@ -4,14 +4,14 @@ After=network.target
 
 [Service]
 Type=simple
-# 修改为实际部署用户与路径
-User=www-data
-Group=www-data
-WorkingDirectory=/var/www/experience/backend
-EnvironmentFile=/var/www/experience/backend/.env
-ExecStart=/var/www/experience/backend/.venv/bin/uvicorn app.main:app \
+# 线上以 root 运行；如需低权用户部署，改为部署用户并调整目录属主
+User=root
+Group=root
+WorkingDirectory=/opt/experience/backend
+EnvironmentFile=/opt/experience/backend/.env
+ExecStart=/opt/experience/backend/.venv/bin/uvicorn app.main:app \
     --host 127.0.0.1 \
-    --port 8000 \
+    --port 8094 \
     --workers 2 \
     --proxy-headers \
     --forwarded-allow-ips="127.0.0.1"
@@ -24,7 +24,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/var/www/experience/backend/data /var/www/experience/backend/storage /var/www/experience/backend/backups
+ReadWritePaths=/opt/experience/backend/data /opt/experience/backend/storage /opt/experience/backend/backups
 
 [Install]
 WantedBy=multi-user.target
