@@ -1,6 +1,7 @@
 import { http } from './http';
 import type {
   CategoryOut,
+  CoverPresetOut,
   ExperienceOut,
   GroupOut,
   HtmlTokenOut,
@@ -121,4 +122,9 @@ export const searchApi = {
     http
       .get<SearchResponse>('/search', { params: { q, mode, limit } })
       .then((r) => r.data),
+};
+
+// ===== Cover Presets =====
+export const coverPresetApi = {
+  list: () => http.get<CoverPresetOut[]>('/cover-presets').then((r) => r.data),
 };

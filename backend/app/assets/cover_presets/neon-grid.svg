@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450">
+  <defs>
+    <linearGradient id="ng-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a0f24"/>
+      <stop offset="55%" stop-color="#11142a"/>
+      <stop offset="100%" stop-color="#06070d"/>
+    </linearGradient>
+    <linearGradient id="ng-sun" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff2ec3"/>
+      <stop offset="60%" stop-color="#7c5cff"/>
+      <stop offset="100%" stop-color="#00e5ff"/>
+    </linearGradient>
+    <linearGradient id="ng-line" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff2ec3" stop-opacity="0.0"/>
+      <stop offset="100%" stop-color="#ff2ec3" stop-opacity="0.85"/>
+    </linearGradient>
+    <linearGradient id="ng-line2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#00e5ff" stop-opacity="0.0"/>
+      <stop offset="100%" stop-color="#00e5ff" stop-opacity="0.7"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="450" fill="url(#ng-bg)"/>
+
+  <!-- Sun -->
+  <circle cx="400" cy="220" r="120" fill="url(#ng-sun)"/>
+  <!-- Sun horizontal cuts -->
+  <g fill="#06070d">
+    <rect x="280" y="240" width="240" height="6"/>
+    <rect x="280" y="258" width="240" height="4"/>
+    <rect x="280" y="272" width="240" height="3"/>
+    <rect x="280" y="284" width="240" height="2"/>
+  </g>
+
+  <!-- Horizon glow -->
+  <rect x="0" y="288" width="800" height="2" fill="#00e5ff" opacity="0.9"/>
+  <rect x="0" y="290" width="800" height="80" fill="url(#ng-line)" opacity="0.18"/>
+
+  <!-- Perspective grid -->
+  <g stroke="#ff2ec3" stroke-width="1.2" opacity="0.85">
+    <line x1="-200" y1="450" x2="380" y2="290"/>
+    <line x1="-50" y1="450" x2="392" y2="290"/>
+    <line x1="120" y1="450" x2="397" y2="290"/>
+    <line x1="280" y1="450" x2="400" y2="290"/>
+    <line x1="400" y1="450" x2="400" y2="290"/>
+    <line x1="520" y1="450" x2="403" y2="290"/>
+    <line x1="680" y1="450" x2="408" y2="290"/>
+    <line x1="850" y1="450" x2="420" y2="290"/>
+    <line x1="1000" y1="450" x2="430" y2="290"/>
+  </g>
+  <g stroke="#00e5ff" stroke-width="1" opacity="0.55">
+    <line x1="0" y1="305" x2="800" y2="305"/>
+    <line x1="0" y1="325" x2="800" y2="325"/>
+    <line x1="0" y1="350" x2="800" y2="350"/>
+    <line x1="0" y1="380" x2="800" y2="380"/>
+    <line x1="0" y1="415" x2="800" y2="415"/>
+  </g>
+
+  <!-- Stars -->
+  <g fill="#e6e8ff">
+    <circle cx="80" cy="60" r="1.5"/>
+    <circle cx="180" cy="40" r="1"/>
+    <circle cx="260" cy="80" r="1.2"/>
+    <circle cx="540" cy="50" r="1"/>
+    <circle cx="640" cy="90" r="1.4"/>
+    <circle cx="720" cy="40" r="1.1"/>
+    <circle cx="120" cy="140" r="1"/>
+    <circle cx="700" cy="160" r="1.2"/>
+  </g>
+</svg>

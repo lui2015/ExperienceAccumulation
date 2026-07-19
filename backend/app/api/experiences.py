@@ -21,6 +21,7 @@ from app.models.user import User
 from app.schemas.experience import ExperienceOut, HtmlTokenOut, MoveItem
 from app.services import storage as storage_svc
 from app.services import search as search_svc
+from app.services import cover_presets as preset_svc
 from app.services.ordering import next_experience_order
 
 router = APIRouter(prefix="/experiences", tags=["experiences"])
@@ -83,6 +84,7 @@ def create_experience(
     summary: Annotated[str | None, Form(max_length=255)] = None,
     group_id: Annotated[str | None, Form()] = None,
     cover_file: Annotated[UploadFile | None, File()] = None,
+    cover_preset: Annotated[str | None, Form(max_length=64)] = None,
 ) -> ExperienceOut:
     settings = get_settings()
     if not db.get(Category, category_id):
@@ -93,7 +95,16 @@ def create_experience(
 
     exp_id = gen_uuid()
     html_path, html_size = storage_svc.save_html_file(html_file, exp_id)
-    cover_path = storage_svc.save_cover_file(cover_file, exp_id) if cover_file else None
+
+    # 封面：上传文件优先；否则使用预设；都没有则空
+    cover_path: str | None = None
+    if cover_file is not None:
+        cover_path = storage_svc.save_cover_file(cover_file, exp_id)
+    elif cover_preset:
+        try:
+            cover_path = preset_svc.apply_preset_to_experience(cover_preset, exp_id)
+        except ValueError as e:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e)) from None
 
     exp = Experience(
         id=exp_id,
@@ -138,6 +149,7 @@ def update_experience(
     clear_group: Annotated[str | None, Form()] = None,
     html_file: Annotated[UploadFile | None, File()] = None,
     cover_file: Annotated[UploadFile | None, File()] = None,
+    cover_preset: Annotated[str | None, Form(max_length=64)] = None,
 ) -> ExperienceOut:
     settings = get_settings()
     exp = db.get(Experience, exp_id)
@@ -171,8 +183,16 @@ def update_experience(
         exp.html_path = new_path
         exp.html_size = new_size
     if cover_file is not None:
+        # 上传文件优先：替换任何已有封面（含旧预设）
         storage_svc.remove_cover_with_any_ext(exp.id)
         exp.cover_path = storage_svc.save_cover_file(cover_file, exp.id)
+    elif cover_preset:
+        # 仅当没有上传文件时，应用预设
+        storage_svc.remove_cover_with_any_ext(exp.id)
+        try:
+            exp.cover_path = preset_svc.apply_preset_to_experience(cover_preset, exp.id)
+        except ValueError as e:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e)) from None
 
     db.commit()
     db.refresh(exp)

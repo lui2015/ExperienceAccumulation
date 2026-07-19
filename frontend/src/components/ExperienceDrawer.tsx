@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Drawer, Form, Input, Select, Upload, Button, Space, App as AntdApp } from 'antd';
 import { InboxOutlined } from '@ant-design/icons';
 import { useMutation } from '@tanstack/react-query';
@@ -6,6 +6,7 @@ import { useMutation } from '@tanstack/react-query';
 import { experienceApi } from '@/api';
 import type { CategoryOut, ExperienceOut, GroupOut } from '@/api/types';
 import { useIsMobile } from '@/hooks/useMediaQuery';
+import CoverPicker from './CoverPicker';
 
 interface Props {
   open: boolean;
@@ -33,6 +34,10 @@ export default function ExperienceDrawer({
   const { message } = AntdApp.useApp();
   const isMobile = useIsMobile();
 
+  // 封面：上传文件 / 预设 二选一
+  const [coverFiles, setCoverFiles] = useState<any[]>([]);
+  const [coverPreset, setCoverPreset] = useState<string | null>(null);
+
   // 当前选择的分类（用于过滤分组下拉）
   const watchedCategoryId = Form.useWatch('category_id', form) ?? defaultCategoryId;
   const filteredGroups = groups.filter((g) => g.category_id === watchedCategoryId);
@@ -46,12 +51,14 @@ export default function ExperienceDrawer({
           category_id: experience.category_id,
           group_id: experience.group_id ?? NONE_VALUE,
           html_file: [],
-          cover_file: [],
         });
       } else {
         form.resetFields();
         form.setFieldsValue({ category_id: defaultCategoryId, group_id: NONE_VALUE });
       }
+      // 重置封面选择
+      setCoverFiles([]);
+      setCoverPreset(null);
     }
   }, [open, experience, defaultCategoryId, form]);
 
@@ -83,9 +90,15 @@ export default function ExperienceDrawer({
       }
 
       const htmlFile = values.html_file?.[0]?.originFileObj;
-      const coverFile = values.cover_file?.[0]?.originFileObj;
       if (htmlFile) fd.append('html_file', htmlFile);
-      if (coverFile) fd.append('cover_file', coverFile);
+
+      // 封面：上传文件优先；否则用预设
+      const coverFile = coverFiles?.[0]?.originFileObj;
+      if (coverFile) {
+        fd.append('cover_file', coverFile);
+      } else if (coverPreset) {
+        fd.append('cover_preset', coverPreset);
+      }
 
       if (isEdit) return experienceApi.update(experience!.id, fd);
       return experienceApi.create(fd);
@@ -181,15 +194,14 @@ export default function ExperienceDrawer({
           </Upload.Dragger>
         </Form.Item>
 
-        <Form.Item
-          name="cover_file"
-          label="封面图（选填）"
-          valuePropName="fileList"
-          getValueFromEvent={normFile}
-        >
-          <Upload accept="image/*" maxCount={1} listType="picture-card" beforeUpload={() => false}>
-            + 上传
-          </Upload>
+        <Form.Item label="封面图（选填）" extra="可上传图片，或选择下方赛博朋克风预设">
+          <CoverPicker
+            fileList={coverFiles}
+            onFileListChange={setCoverFiles}
+            presetKey={coverPreset}
+            onPresetChange={setCoverPreset}
+            hasExistingCover={!!experience?.has_cover}
+          />
         </Form.Item>
       </Form>
     </Drawer>

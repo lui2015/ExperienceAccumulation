@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth, categories, experiences, files, groups, search, users, visitors
+from app.api import auth, categories, cover_presets, experiences, files, groups, search, users, visitors
 from app.core.config import get_settings
 
 
@@ -46,6 +46,8 @@ def create_app() -> FastAPI:
     app.include_router(visitors.router, prefix="/api/v1")
     # 文件路由：HTML 走 /files/html/{token}（沙箱域），封面走 /api/v1/...
     app.include_router(files.router)
+    # 封面预设（列表 + 单张预览）
+    app.include_router(cover_presets.router)
 
     @app.get("/healthz", include_in_schema=False)
     def healthz() -> dict[str, str]:

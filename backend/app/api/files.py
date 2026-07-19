@@ -64,5 +64,10 @@ def download_cover(
     if not abs_path.is_file():
         raise HTTPException(status.HTTP_404_NOT_FOUND, "封面文件丢失")
     ext = abs_path.suffix.lstrip(".")
-    media = {"jpg": "image/jpeg", "png": "image/png", "webp": "image/webp"}.get(ext, "application/octet-stream")
+    media = {
+        "jpg": "image/jpeg",
+        "png": "image/png",
+        "webp": "image/webp",
+        "svg": "image/svg+xml",
+    }.get(ext, "application/octet-stream")
     return FileResponse(abs_path, media_type=media)

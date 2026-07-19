@@ -101,3 +101,11 @@ export interface SearchResponse {
   total: number;
   hits: SearchHit[];
 }
+
+// ===== Cover Presets =====
+export interface CoverPresetOut {
+  key: string;
+  label: string;
+  color: string;
+  url: string;
+}

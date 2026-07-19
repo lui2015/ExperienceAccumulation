@@ -108,9 +108,9 @@ def remove_file(rel_path: str | None) -> None:
 
 
 def remove_cover_with_any_ext(experience_id: str) -> None:
-    """删除任意扩展名的封面图。"""
+    """删除任意扩展名的封面图（含预设产生的 svg）。"""
     settings = get_settings()
-    for ext in ("jpg", "png", "webp"):
+    for ext in ("jpg", "png", "webp", "svg"):
         p = settings.cover_dir / f"{experience_id}.{ext}"
         if p.is_file():
             p.unlink(missing_ok=True)
