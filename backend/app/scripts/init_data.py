@@ -10,11 +10,16 @@ from app.models import Category, User  # noqa: F401  (确保导入后注册到 B
 from app.models.category import Category
 from app.models.user import User, UserRole, UserStatus
 
-# 种子分类（用户原始诉求的三个 Tab）
+# 草稿分类：开放接口未指定分类时的默认归属（可被前端顶部 TAB 展示）
+DRAFT_CATEGORY_SLUG = "draft"
+DRAFT_CATEGORY_NAME = "草稿"
+
+# 种子分类（用户原始诉求的三个 Tab + 草稿）
 SEED_CATEGORIES = [
     {"slug": "pm", "name": "互联网项目管理", "icon": "💼", "order": 1000.0},
     {"slug": "finance", "name": "金融投资", "icon": "📈", "order": 2000.0},
     {"slug": "mindset", "name": "思维认知", "icon": "🧠", "order": 3000.0},
+    {"slug": DRAFT_CATEGORY_SLUG, "name": DRAFT_CATEGORY_NAME, "icon": "📝", "order": 9000.0},
 ]
 
 

@@ -29,6 +29,7 @@ from app.models.experience import Experience
 from app.models.group import Group
 from app.models.user import User
 from app.schemas.experience import ExperienceOut
+from app.scripts.init_data import DRAFT_CATEGORY_NAME, DRAFT_CATEGORY_SLUG
 from app.services import cover_presets as cover_svc
 from app.services import ordering as ordering_svc
 from app.services import search as search_svc
@@ -130,10 +131,28 @@ def _slugify(name: str) -> str:
     return (s or gen_uuid()[:8])[:60]
 
 
-def _resolve_category(db: Session, category_id: str | None, category_name: str | None) -> Category | None:
+def _get_or_create_draft_category(db: Session) -> Category:
+    """获取（或创建）草稿分类，作为未指定分类时的默认归属。"""
+    cat = db.query(Category).filter(Category.slug == DRAFT_CATEGORY_SLUG).first()
+    if cat is None:
+        cat = Category(
+            id=gen_uuid(),
+            slug=DRAFT_CATEGORY_SLUG,
+            name=DRAFT_CATEGORY_NAME,
+            icon="📝",
+            order=9000.0,
+        )
+        db.add(cat)
+        db.flush()
+    return cat
+
+
+def _resolve_category(db: Session, category_id: str | None, category_name: str | None) -> Category:
     if category_id:
-        return db.get(Category, category_id)
-    if category_name:
+        cat = db.get(Category, category_id)
+        if cat is not None:
+            return cat
+    if category_name and category_name.strip():
         cat = db.query(Category).filter(Category.name == category_name).first()
         if cat is None:
             base = _slugify(category_name)
@@ -145,7 +164,8 @@ def _resolve_category(db: Session, category_id: str | None, category_name: str |
             db.add(cat)
             db.flush()
         return cat
-    return None
+    # 未指定任何分类：归入草稿
+    return _get_or_create_draft_category(db)
 
 
 def _resolve_group(db: Session, category_id: str, group_id: str | None, group_name: str | None) -> Group | None:
@@ -177,10 +197,11 @@ async def open_create_experience(
     cover_preset: str | None = Form(None),
     cover_file: UploadFile | None = File(None),
 ) -> ExperienceOut:
-    """开放接口：提交一条经验（归属令牌对应的站主）。"""
+    """开放接口：提交一条经验（归属令牌对应的站主）。
+
+    分类为非必传：未指定 category_id / category_name 时自动归入「草稿」。
+    """
     category = _resolve_category(db, category_id, category_name)
-    if category is None:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "必须提供 category_id 或 category_name")
     group = _resolve_group(db, category.id, group_id, group_name)
 
     exp_id = gen_uuid()

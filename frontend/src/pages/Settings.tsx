@@ -41,18 +41,19 @@ function buildPrompt(apiBase: string, token: string): string {
 - 鉴权：请求头必须带 Authorization: Bearer ${token}
 
 ## 提交步骤
-1. 先调用 GET ${meta}（带上同样的 Bearer 头）获取可用的分类 category_id / category_name 与封面 preset key，确保下面用的分类名已存在（不存在服务端会自动新建）。
-2. 再调用 POST ${submit}（multipart/form-data，字段如下）提交经验。
+1. （可选）调用 GET ${meta}（带上同样的 Bearer 头）获取已有分类 category_id / category_name 与封面 preset key。
+2. 调用 POST ${submit}（multipart/form-data，字段如下）提交经验。
 
 ## 请求字段
 - title（必填）：经验标题
 - html（必填）：经验正文，直接传 HTML 字符串（例如 <h1>标题</h1><p>内容…</p>），不要传文件
 - summary（可选）：一句话简介
-- category_id（可选）或 category_name（可选）：分类，二选一；优先用 category_name
+- category_id（可选）或 category_name（可选）：分类，二选一。若都不传，系统会自动归入「草稿」分类；category_name 指定的分类不存在时服务端会自动新建
 - group_name（可选）：该分类下的分组名，不存在会自动新建
 - cover_preset（可选）：封面预设 key，取自 meta 返回的列表（如 neon-grid）
 
 ## 调用示例（curl）
+# 示例一：完整提交（指定分类）
 curl -X POST '${submit}' \\
   -H 'Authorization: Bearer ${token}' \\
   -F 'title=我的经验标题' \\
@@ -61,10 +62,16 @@ curl -X POST '${submit}' \\
   -F 'html=<h1>正文标题</h1><p>这里是经验正文内容。</p>' \\
   -F 'cover_preset=neon-grid'
 
+# 示例二：最简提交（仅 title + html，自动归入「草稿」）
+curl -X POST '${submit}' \\
+  -H 'Authorization: Bearer ${token}' \\
+  -F 'title=我的经验标题' \\
+  -F 'html=<h1>正文标题</h1><p>这里是经验正文内容。</p>'
+
 ## 完成标准
 - 返回 200 且包含经验的 id、title 即视为成功，把链接或 id 反馈给用户。
-- 若分类名通过 meta 查询后确实不存在，仍可直接提交（服务端会自动创建该分类再入库）。
-- 任何 4xx 都先检查字段是否完整、令牌是否有效，不要反复重试。`;
+- 只要 title 与 html 完整即可提交；分类为可选，不传会进入「草稿」。
+- 任何 4xx 都先检查 title / html 是否完整、令牌是否有效，不要反复重试。`;
 }
 
 export default function SettingsPage() {
