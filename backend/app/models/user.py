@@ -30,6 +30,8 @@ class User(Base):
     status: Mapped[str] = mapped_column(String(16), default=UserStatus.ACTIVE.value, nullable=False)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    # 开放接口令牌（仅哈希存储；明文只在生成时返回一次）
+    api_token_hash: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
 
     @property
     def is_owner(self) -> bool:

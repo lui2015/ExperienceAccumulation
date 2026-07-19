@@ -109,3 +109,13 @@ export interface CoverPresetOut {
   color: string;
   url: string;
 }
+
+// ===== 开放接口 (Open API) =====
+export interface OpenTokenStatus {
+  exists: boolean;
+}
+
+export interface OpenTokenOut {
+  token: string;
+  note: string;
+}

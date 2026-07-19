@@ -77,6 +77,23 @@ def save_html_file(file: UploadFile, target_id: str) -> tuple[str, int]:
     return rel_path, len(content)
 
 
+def save_html_text(html_text: str, target_id: str) -> tuple[str, int]:
+    """将原始 HTML 文本直接落盘（供开放接口提交，避免 AI 传递文件）。"""
+    settings = get_settings()
+    raw = html_text.encode("utf-8")
+    _ensure_html(raw)
+    if len(raw) > settings.max_html_bytes:
+        raise HTTPException(
+            status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            f"HTML 内容超过 {settings.max_html_bytes // 1024 // 1024}MB 限制",
+        )
+    rel_path = f"html/{target_id}.html"
+    abs_path = settings.storage_dir / rel_path
+    abs_path.parent.mkdir(parents=True, exist_ok=True)
+    abs_path.write_bytes(raw)
+    return rel_path, len(raw)
+
+
 def save_cover_file(file: UploadFile, target_id: str) -> str:
     """保存封面图，返回相对路径。"""
     settings = get_settings()

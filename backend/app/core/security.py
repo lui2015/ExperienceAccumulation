@@ -1,4 +1,7 @@
-"""安全相关：密码哈希、JWT 编解码。"""
+"""安全相关：密码哈希、JWT 编解码、开放接口令牌。"""
+import hashlib
+import hmac
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -70,3 +73,20 @@ def create_share_token(experience_id: str, *, ttl_days: int = 365) -> str:
 def decode_token(token: str) -> dict[str, Any]:
     settings = get_settings()
     return jwt.decode(token, settings.secret_key, algorithms=[_ALGORITHM])
+
+
+def generate_open_token() -> str:
+    """生成开放接口令牌（明文，仅返回一次）。"""
+    return "ea_" + secrets.token_urlsafe(32)
+
+
+def hash_open_token(token: str) -> str:
+    """对令牌做 SHA-256 哈希，用于安全存储。"""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def verify_open_token(token: str, stored_hash: str | None) -> bool:
+    """恒定时间比对令牌与存储的哈希。"""
+    if not token or not stored_hash:
+        return False
+    return hmac.compare_digest(hash_open_token(token), stored_hash)

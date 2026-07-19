@@ -105,9 +105,22 @@ def _ensure_fts() -> None:
             print(f"[migrate] FTS 回填完成，共 {count} 条")
 
 
+def _ensure_api_token_hash() -> None:
+    """为 users 表补加 api_token_hash 列（开放接口令牌）。"""
+    inspector = inspect(engine)
+    cols = {c["name"] for c in inspector.get_columns("users")}
+    if "api_token_hash" not in cols:
+        with engine.begin() as conn:
+            conn.execute(
+                text("ALTER TABLE users ADD COLUMN api_token_hash VARCHAR(128)")
+            )
+            print("[migrate] 已为 users 添加列 api_token_hash")
+
+
 def migrate() -> None:
     _ensure_groups_and_group_id()
     _ensure_fts()
+    _ensure_api_token_hash()
     Base.metadata.create_all(bind=engine)
 
 

@@ -10,6 +10,7 @@ import {
   SettingOutlined,
   HomeOutlined,
   DownloadOutlined,
+  ApiOutlined,
 } from '@ant-design/icons';
 
 import { useAuthStore } from '@/store/auth';
@@ -121,6 +122,12 @@ export default function MainLayout() {
       icon: <DownloadOutlined />,
       label: '数据导出',
       onClick: () => navigate('/admin/export'),
+    },
+    isOwner && {
+      key: 'open-api',
+      icon: <ApiOutlined />,
+      label: '开放接口',
+      onClick: () => navigate('/admin/settings'),
     },
     isOwner && { type: 'divider' as const },
     {
@@ -346,6 +353,14 @@ export default function MainLayout() {
                 onClick={() => goAndClose('/admin/export')}
               >
                 数据导出
+              </Button>
+              <Button
+                block
+                size="large"
+                icon={<ApiOutlined />}
+                onClick={() => goAndClose('/admin/settings')}
+              >
+                开放接口
               </Button>
             </>
           )}

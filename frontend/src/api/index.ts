@@ -8,6 +8,8 @@ import type {
   ManagedUserCreatedOut,
   ManagedUserOut,
   MoveItem,
+  OpenTokenOut,
+  OpenTokenStatus,
   ReorderItem,
   SearchResponse,
   UserOut,
@@ -127,4 +129,14 @@ export const searchApi = {
 // ===== Cover Presets =====
 export const coverPresetApi = {
   list: () => http.get<CoverPresetOut[]>('/cover-presets').then((r) => r.data),
+};
+
+// ===== 开放接口 (Open API) =====
+export const openApi = {
+  /** 是否已生成令牌 */
+  getStatus: () => http.get<OpenTokenStatus>('/open/token/status').then((r) => r.data),
+  /** 生成（或重置）令牌，明文仅返回一次 */
+  createToken: () => http.post<OpenTokenOut>('/open/token').then((r) => r.data),
+  /** 吊销令牌 */
+  revokeToken: () => http.delete('/open/token'),
 };
