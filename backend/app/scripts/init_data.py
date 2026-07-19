@@ -1,12 +1,13 @@
 """首次启动初始化：建表 + 创建 Owner + 种子分类。"""
 from __future__ import annotations
 
+import fcntl
+
 from sqlalchemy import select
 
 from app.core.config import get_settings
 from app.core.security import hash_password
 from app.db.session import Base, SessionLocal, engine
-from app.models import Category, User  # noqa: F401  (确保导入后注册到 Base.metadata)
 from app.models.category import Category
 from app.models.user import User, UserRole, UserStatus
 
@@ -24,9 +25,26 @@ SEED_CATEGORIES = [
 
 
 def bootstrap() -> None:
-    """启动钩子：建表（含轻量迁移） + 必要种子数据。可重复执行（幂等）。"""
+    """启动钩子：建表（含轻量迁移） + 必要种子数据。可重复执行（幂等）。
+
+    多 worker（uvicorn --workers N）并发启动时，分别对分类做幂等插入会触发
+    UNIQUE 冲突导致个别 worker 启动失败。这里用文件锁串行化整个 bootstrap，
+    确保同一时刻只有一个进程在做种子数据。
+    """
     settings = get_settings()
     settings.ensure_dirs()
+
+    lock_path = settings.data_dir / ".bootstrap.lock"
+    lock_file = open(lock_path, "w")  # noqa: SIM115 (保持 fd 直至启动完成)
+    try:
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        _do_bootstrap(settings)
+    finally:
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+        lock_file.close()
+
+
+def _do_bootstrap(settings) -> None:
     Base.metadata.create_all(bind=engine)
 
     # 兼容已存在的旧库：补建新表/新列
