@@ -64,7 +64,9 @@ export default function HomePage() {
   const categoriesQ = useQuery({ queryKey: ['categories'], queryFn: categoryApi.list });
   const categories = categoriesQ.data ?? [];
 
-  const isLatest = slug === 'latest';
+  // 「最新发布」tab 通过路由 /latest 访问，该路由没有 :slug 参数，
+  // 因此需用 pathname 判断是否处于 latest 视图（否则 isLatest 恒为 false，tab 无法切换）。
+  const isLatest = location.pathname === '/latest';
 
   const activeCat = useMemo(() => {
     if (isLatest) return null; // 最新发布 tab 不关联具体分类
@@ -240,7 +242,7 @@ export default function HomePage() {
   const removeMut = useMutation({
     mutationFn: experienceApi.remove,
     onSuccess: (_, id) => {
-      qc.invalidateQueries({ queryKey: ['experiences', activeCat?.id] });
+      qc.invalidateQueries({ queryKey: isLatest ? ['experiences', 'latest'] : ['experiences', activeCat?.id] });
       const close = message.loading({
         content: (
           <Space>
@@ -248,7 +250,7 @@ export default function HomePage() {
             <a
               onClick={() => {
                 experienceApi.restore(id).then(() => {
-                  qc.invalidateQueries({ queryKey: ['experiences', activeCat?.id] });
+                  qc.invalidateQueries({ queryKey: isLatest ? ['experiences', 'latest'] : ['experiences', activeCat?.id] });
                   message.success('已撤销删除');
                 });
               }}
