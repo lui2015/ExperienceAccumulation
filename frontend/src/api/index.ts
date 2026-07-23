@@ -8,8 +8,6 @@ import type {
   ManagedUserCreatedOut,
   ManagedUserOut,
   MoveItem,
-  OpenTokenOut,
-  OpenTokenStatus,
   OpenStats,
   ReorderItem,
   SearchResponse,
@@ -136,13 +134,8 @@ export const coverPresetApi = {
 };
 
 // ===== 开放接口 (Open API) =====
+// 开放接口免令牌，可直接调用；仅 stats 需站主 Cookie 登录后查看。
 export const openApi = {
-  /** 是否已生成令牌 */
-  getStatus: () => http.get<OpenTokenStatus>('/open/token/status').then((r) => r.data),
-  /** 生成（或重置）令牌，明文仅返回一次 */
-  createToken: () => http.post<OpenTokenOut>('/open/token').then((r) => r.data),
-  /** 吊销令牌 */
-  revokeToken: () => http.delete('/open/token'),
-  /** 调用统计（当日 / 累计） */
+  /** 调用统计（当日 / 累计），需站主登录 */
   getStats: () => http.get<OpenStats>('/open/stats').then((r) => r.data),
 };

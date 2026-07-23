@@ -111,15 +111,6 @@ export interface CoverPresetOut {
 }
 
 // ===== 开放接口 (Open API) =====
-export interface OpenTokenStatus {
-  exists: boolean;
-}
-
-export interface OpenTokenOut {
-  token: string;
-  note: string;
-}
-
 export interface OpenStats {
   total_calls: number;
   today_calls: number;

@@ -1,34 +1,32 @@
-"""开放接口：站主生成 API 令牌，供 AI 代理直接提交经验。
+"""开放接口（Open API）
+===================
 
-设计要点：
-- 令牌以 Bearer 形式传递，后端只保存其 SHA-256 哈希。
-- /open/token（生成/吊销/状态）走站主 Cookie 登录。
-- /open/meta、/open/experiences 走 Bearer 令牌，便于 AI 代理从任意环境调用。
-- 提交时 html 既支持原始文本字段（AI 友好），也兼容文件上传。
+面向 AI 编程助手 / 自动化脚本的极简写入接口，无需任何令牌，可直接调用：
+  - GET  /open/meta        读取站点元数据（分类、封面预设）
+  - POST /open/experiences 新建一条经验（表单 / JSON），统一归属站主账号
+  - GET  /open/stats       调用统计（站主 Cookie 登录后查看）
+
+设计取舍：为简化调用、方便 AI 直接提交，开放接口不再校验令牌，所有写入统一
+归属到站主（role=owner）账号，可在后台统一管理。
 """
 from __future__ import annotations
 
 import re
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Response, status, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, status, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_owner
-from app.core.security import (
-    generate_open_token,
-    hash_open_token,
-    verify_open_token,
-)
 from app.db.session import get_db
 from app.models._helpers import gen_uuid, utcnow
 from app.models.api_call_log import ApiCallLog
 from app.models.category import Category
 from app.models.experience import Experience
 from app.models.group import Group
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.experience import ExperienceOut
 from app.scripts.init_data import DRAFT_CATEGORY_NAME, DRAFT_CATEGORY_SLUG
 from app.services import cover_presets as cover_svc
@@ -40,15 +38,6 @@ router = APIRouter(prefix="/open", tags=["open-api"])
 
 
 # ----------------------------- Schemas ----------------------------- #
-class OpenTokenOut(BaseModel):
-    token: str
-    note: str
-
-
-class OpenTokenStatus(BaseModel):
-    exists: bool
-
-
 class OpenCategoryOut(BaseModel):
     id: str
     name: str
@@ -66,56 +55,13 @@ class OpenStatsOut(BaseModel):
     today_calls: int
 
 
-# ----------------------------- Bearer 鉴权 ----------------------------- #
-def get_user_by_open_token(
-    authorization: Annotated[str | None, Header()] = None,
-    db: Session = Depends(get_db),
-) -> User:
-    if not authorization or not authorization.lower().startswith("bearer "):
-        raise HTTPException(
-            status.HTTP_401_UNAUTHORIZED,
-            "缺少 Bearer 令牌",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    token = authorization[len("Bearer "):].strip()
-    if not token:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "令牌为空")
-    user = db.query(User).filter(User.api_token_hash == hash_open_token(token)).first()
-    if user is None:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "令牌无效")
-    return user
-
-
-# ----------------------------- 令牌管理（站主 Cookie） ----------------------------- #
-@router.post("/token", response_model=OpenTokenOut)
-def create_open_token(
-    user: Annotated[User, Depends(require_owner)],
-    db: Session = Depends(get_db),
-) -> OpenTokenOut:
-    """生成（或重置）当前站主的开放接口令牌，明文仅返回一次。"""
-    plain = generate_open_token()
-    user.api_token_hash = hash_open_token(plain)
-    db.commit()
-    return OpenTokenOut(token=plain, note="请妥善保存，仅显示这一次")
-
-
-@router.delete("/token", status_code=status.HTTP_204_NO_CONTENT)
-def revoke_open_token(
-    user: Annotated[User, Depends(require_owner)],
-    db: Session = Depends(get_db),
-) -> Response:
-    """吊销开放接口令牌。"""
-    user.api_token_hash = None
-    db.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-@router.get("/token/status", response_model=OpenTokenStatus)
-def open_token_status(
-    user: Annotated[User, Depends(require_owner)],
-) -> OpenTokenStatus:
-    """查询是否已存在令牌（不返回明文）。"""
-    return OpenTokenStatus(exists=bool(user.api_token_hash))
+# ----------------------------- 免令牌：统一归属站主 ----------------------------- #
+def get_owner_user(db: Session = Depends(get_db)) -> User:
+    """开放接口免令牌调用时，统一把内容归属到站主账号。"""
+    owner = db.query(User).filter(User.role == UserRole.OWNER.value).first()
+    if owner is None:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "未找到站主账号")
+    return owner
 
 
 # ----------------------------- 调用统计（站主 Cookie） ----------------------------- #
@@ -153,13 +99,13 @@ def _record_call(db: Session, user: User, endpoint: str, status_code: int) -> No
         db.rollback()
 
 
-# ----------------------------- 元数据（Bearer） ----------------------------- #
+# ----------------------------- 元数据（免令牌） ----------------------------- #
 @router.get("/meta", response_model=OpenMetaOut)
 def open_meta(
-    user: Annotated[User, Depends(get_user_by_open_token)],
+    user: Annotated[User, Depends(get_owner_user)],
     db: Session = Depends(get_db),
 ) -> OpenMetaOut:
-    """返回可用分类与封面预设，供 AI 提交前枚举合法取值。"""
+    """返回可用分类与封面预设，供 AI 提交前枚举合法取值。无需令牌。"""
     _record_call(db, user, "/open/meta", 200)
     cats = db.query(Category).order_by(Category.order).all()
     return OpenMetaOut(
@@ -168,7 +114,7 @@ def open_meta(
     )
 
 
-# ----------------------------- 提交经验（Bearer） ----------------------------- #
+# ----------------------------- 提交经验（免令牌） ----------------------------- #
 def _slugify(name: str) -> str:
     s = re.sub(r"[^a-zA-Z0-9\u4e00-\u9fff]+", "-", name.strip().lower()).strip("-")
     return (s or gen_uuid()[:8])[:60]
@@ -227,7 +173,7 @@ def _resolve_group(db: Session, category_id: str, group_id: str | None, group_na
 
 @router.post("/experiences", response_model=ExperienceOut)
 async def open_create_experience(
-    user: Annotated[User, Depends(get_user_by_open_token)],
+    user: Annotated[User, Depends(get_owner_user)],
     db: Session = Depends(get_db),
     title: str = Form(..., min_length=1, max_length=120),
     summary: str | None = Form(None, max_length=255),
@@ -240,7 +186,7 @@ async def open_create_experience(
     cover_preset: str | None = Form(None),
     cover_file: UploadFile | None = File(None),
 ) -> ExperienceOut:
-    """开放接口：提交一条经验（归属令牌对应的站主）。
+    """开放接口：提交一条经验（无需令牌，统一归属站主）。
 
     分类为非必传：未指定 category_id / category_name 时自动归入「草稿」。
     """
