@@ -10,6 +10,7 @@ import type {
   MoveItem,
   OpenTokenOut,
   OpenTokenStatus,
+  OpenStats,
   ReorderItem,
   SearchResponse,
   UserOut,
@@ -139,4 +140,6 @@ export const openApi = {
   createToken: () => http.post<OpenTokenOut>('/open/token').then((r) => r.data),
   /** 吊销令牌 */
   revokeToken: () => http.delete('/open/token'),
+  /** 调用统计（当日 / 累计） */
+  getStats: () => http.get<OpenStats>('/open/stats').then((r) => r.data),
 };

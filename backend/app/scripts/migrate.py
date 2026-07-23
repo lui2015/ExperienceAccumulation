@@ -9,6 +9,7 @@ from sqlalchemy import inspect, select, text
 
 from app.db.session import Base, SessionLocal, engine
 from app.models import Group  # noqa: F401  注册到 metadata
+from app.models.api_call_log import ApiCallLog  # noqa: F401  注册到 metadata
 from app.models.experience import Experience
 from app.services.search import (
     delete_index,
@@ -117,10 +118,19 @@ def _ensure_api_token_hash() -> None:
             print("[migrate] 已为 users 添加列 api_token_hash")
 
 
+def _ensure_api_call_logs() -> None:
+    """建开放接口调用统计表（Base.metadata.create_all 已覆盖，此处仅打印提示）。"""
+    inspector = inspect(engine)
+    if "api_call_logs" not in inspector.get_table_names():
+        ApiCallLog.__table__.create(bind=engine, checkfirst=True)
+        print("[migrate] 已创建表 api_call_logs")
+
+
 def migrate() -> None:
     _ensure_groups_and_group_id()
     _ensure_fts()
     _ensure_api_token_hash()
+    _ensure_api_call_logs()
     Base.metadata.create_all(bind=engine)
 
 

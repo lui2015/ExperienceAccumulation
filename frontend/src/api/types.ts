@@ -119,3 +119,8 @@ export interface OpenTokenOut {
   token: string;
   note: string;
 }
+
+export interface OpenStats {
+  total_calls: number;
+  today_calls: number;
+}

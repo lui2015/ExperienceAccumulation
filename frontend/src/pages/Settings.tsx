@@ -3,8 +3,11 @@ import {
   Alert,
   Button,
   Card,
+  Col,
   Input,
+  Row,
   Space,
+  Statistic,
   Tag,
   Typography,
   message,
@@ -12,6 +15,7 @@ import {
 import {
   ApiOutlined,
   CopyOutlined,
+  DashboardOutlined,
   KeyOutlined,
   RedoOutlined,
   SafetyOutlined,
@@ -78,22 +82,37 @@ export default function SettingsPage() {
   const [exists, setExists] = useState<boolean | null>(null);
   const [token, setToken] = useState('');
   const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState<{ total_calls: number; today_calls: number } | null>(null);
   const apiBase = useMemo(resolveApiBase, []);
+
+  const refreshStats = () => {
+    openApi
+      .getStats()
+      .then(setStats)
+      .catch(() => setStats({ total_calls: 0, today_calls: 0 }));
+  };
 
   useEffect(() => {
     openApi
       .getStatus()
       .then((r) => setExists(r.exists))
       .catch(() => setExists(false));
+    refreshStats();
   }, []);
+
+  const afterMutate = () => {
+    // 令牌变更后刷新状态与统计
+    openApi.getStatus().then((r) => setExists(r.exists)).catch(() => setExists(false));
+    refreshStats();
+  };
 
   const handleCreate = async () => {
     setLoading(true);
     try {
       const r = await openApi.createToken();
       setToken(r.token);
-      setExists(true);
       message.success('令牌已生成，请立即复制保存');
+      afterMutate();
     } catch {
       message.error('生成失败，请重试');
     } finally {
@@ -106,8 +125,8 @@ export default function SettingsPage() {
     try {
       await openApi.revokeToken();
       setToken('');
-      setExists(false);
       message.success('令牌已吊销');
+      afterMutate();
     } catch {
       message.error('吊销失败');
     } finally {
@@ -133,24 +152,73 @@ export default function SettingsPage() {
         站点级配置与能力开关。当前仅站主可访问。
       </Paragraph>
 
-      {/* ===== 开放接口 ===== */}
+      {/* ===== 开放平台 ===== */}
       <Card
         className="cy-card"
         style={{ marginTop: 16 }}
         title={
           <Space>
             <ApiOutlined style={{ color: 'var(--cy-neon-pink)' }} />
-            <span>开放接口</span>
+            <span>开放平台</span>
             {exists === true && <Tag color="green">已启用</Tag>}
             {exists === false && <Tag color="default">未启用</Tag>}
           </Space>
         }
       >
         <Paragraph type="secondary" style={{ marginTop: 0 }}>
-          生成一个接口令牌，即可把接口能力交给 AI（如 ChatGPT / Claude / 任意支持 HTTP
-          调用的智能体）。AI 拿到令牌后能直接调用接口，把你口述或草稿里的经验自动整理成结构化内容并提交入库，
-          无需手动打开后台。
+          开放平台提供一个接口令牌，让 AI（ChatGPT / Claude / 任意支持 HTTP 调用的智能体）可以直接把
+          经验文档（HTML）提交入库，无需手动打开后台。下方展示接口调用情况，并附可直接复制给 AI 的提示词。
         </Paragraph>
+
+        {/* 调用统计 */}
+        <div
+          style={{
+            background: 'rgba(124, 92, 255, 0.06)',
+            border: '1px solid rgba(124, 92, 255, 0.2)',
+            borderRadius: 12,
+            padding: '18px 20px',
+            marginBottom: 18,
+          }}
+        >
+          <Space align="center" style={{ marginBottom: 10 }} size={8}>
+            <DashboardOutlined style={{ color: 'var(--cy-neon-cyan)' }} />
+            <Text strong style={{ fontSize: 13, letterSpacing: '0.04em' }}>
+              接口调用统计
+            </Text>
+            <Button
+              size="small"
+              type="text"
+              icon={<RedoOutlined />}
+              onClick={refreshStats}
+              style={{ marginLeft: 4 }}
+            >
+              刷新
+            </Button>
+          </Space>
+          <Row gutter={24}>
+            <Col xs={12} sm={8}>
+              <Statistic
+                title="当日调用次数"
+                value={stats?.today_calls ?? 0}
+                valueStyle={{ color: 'var(--cy-neon-cyan)', fontWeight: 600 }}
+              />
+            </Col>
+            <Col xs={12} sm={8}>
+              <Statistic
+                title="累计调用次数"
+                value={stats?.total_calls ?? 0}
+                valueStyle={{ color: 'var(--cy-neon-pink)', fontWeight: 600 }}
+              />
+            </Col>
+            <Col xs={24} sm={8}>
+              <div style={{ paddingTop: 2 }}>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  统计范围：开放接口（/open/*）成功调用
+                </Text>
+              </div>
+            </Col>
+          </Row>
+        </div>
 
         <Alert
           type="warning"
@@ -244,36 +312,35 @@ export default function SettingsPage() {
             </Paragraph>
           </div>
         </Space>
-      </Card>
 
-      {/* ===== 给 AI 的提示词 ===== */}
-      <Card
-        className="cy-card"
-        style={{ marginTop: 16 }}
-        title={<span>给 AI 的提示词（复制后粘贴给智能体）</span>}
-      >
-        <Paragraph type="secondary" style={{ marginTop: 0 }}>
-          把下面这段提示词完整复制，粘贴给任意支持调用 HTTP 接口的 AI。它会自动带上你的令牌，
-          把经验整理成 HTML 并提交。若尚未生成令牌，提示词中的令牌占位符需先生成并替换。
-        </Paragraph>
-        <Input.TextArea
-          readOnly
-          value={prompt}
-          autoSize={{ minRows: 18, maxRows: 40 }}
-          style={{
-            fontFamily: 'var(--cy-font-mono)',
-            fontSize: 13,
-            lineHeight: 1.6,
-          }}
-        />
-        <Button
-          icon={<CopyOutlined />}
-          type="primary"
-          style={{ marginTop: 8 }}
-          onClick={() => copy(prompt, '提示词已复制，去粘贴给 AI 吧')}
-        >
-          复制提示词
-        </Button>
+        {/* 给 AI 的提示词 */}
+        <div style={{ marginTop: 24, borderTop: '1px solid rgba(124, 92, 255, 0.15)', paddingTop: 18 }}>
+          <Text strong style={{ display: 'block', marginBottom: 6 }}>
+            给 AI 的提示词（一键复制，粘贴给智能体即可调用）
+          </Text>
+          <Paragraph type="secondary" style={{ marginTop: 0, marginBottom: 10 }}>
+            把下面这段提示词完整复制，粘贴给任意支持 HTTP 调用的 AI。它会自动带上你的令牌，
+            把经验整理成 HTML 并提交。若尚未生成令牌，提示词中的令牌占位符需先生成并替换。
+          </Paragraph>
+          <Input.TextArea
+            readOnly
+            value={prompt}
+            autoSize={{ minRows: 16, maxRows: 40 }}
+            style={{
+              fontFamily: 'var(--cy-font-mono)',
+              fontSize: 13,
+              lineHeight: 1.6,
+            }}
+          />
+          <Button
+            icon={<CopyOutlined />}
+            type="primary"
+            style={{ marginTop: 8 }}
+            onClick={() => copy(prompt, '提示词已复制，去粘贴给 AI 吧')}
+          >
+            复制提示词
+          </Button>
+        </div>
       </Card>
     </div>
   );

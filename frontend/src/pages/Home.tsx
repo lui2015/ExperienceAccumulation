@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Empty, Tabs, Button, Form, Input, Modal, Space, Spin, App as AntdApp } from 'antd';
-import { PlusOutlined, FolderAddOutlined } from '@ant-design/icons';
+import { PlusOutlined, FolderAddOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import {
   DndContext,
   PointerSensor,
@@ -20,6 +20,7 @@ import type { ExperienceOut, GroupOut } from '@/api/types';
 import { useAuthStore } from '@/store/auth';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import GroupSection from '@/components/GroupSection';
+import ExperienceCard from '@/components/ExperienceCard';
 import ExperienceDrawer from '@/components/ExperienceDrawer';
 import EmojiPicker from '@/components/EmojiPicker';
 
@@ -338,7 +339,16 @@ export default function HomePage() {
     });
   };
 
-  // 8) 渲染
+  // 8) 最新发布：按时间倒序取前10条（hooks 必须在条件渲染外）
+  const latestExperiences = useMemo(
+    () =>
+      expQ.data
+        ? [...expQ.data].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()).slice(0, 10)
+        : [],
+    [expQ.data],
+  );
+
+  // 9) 渲染
   if (categoriesQ.isLoading) return <Spin />;
   if (!categories.length) return <Empty description="还没有分类，请在「分类管理」中新建" />;
 
@@ -393,6 +403,73 @@ export default function HomePage() {
           ) : null
         }
       />
+
+      {/* 最新发布：按时间倒序展示最近的经验 */}
+      {!expQ.isLoading && latestExperiences.length > 0 && (
+        <section style={{ marginTop: 4, marginBottom: 8 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              marginBottom: 14,
+              paddingBottom: 8,
+              borderBottom: '1px solid rgba(124, 92, 255, 0.2)',
+            }}
+          >
+            <ClockCircleOutlined
+              style={{
+                fontSize: 16,
+                color: 'var(--cy-neon-pink)',
+                textShadow: '0 0 12px rgba(255, 46, 195, 0.5)',
+              }}
+            />
+            <h3
+              style={{
+                margin: 0,
+                fontSize: 15,
+                fontWeight: 600,
+                color: 'var(--cy-text)',
+                letterSpacing: '0.05em',
+                fontFamily: 'var(--cy-font-mono)',
+              }}
+            >
+              最新发布
+            </h3>
+            <span
+              style={{
+                fontFamily: 'var(--cy-font-mono)',
+                fontSize: 11,
+                color: 'var(--cy-text-faint)',
+              }}
+            >
+              [{latestExperiences.length}]
+            </span>
+          </div>
+
+          <div
+            style={{ display: 'flex', gap: 16, overflowX: 'auto', padding: '4px 4px 12px', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {latestExperiences.map((exp) => (
+              <div
+                key={exp.id}
+                style={{
+                  flex: '0 0 auto',
+                  width: isMobile ? 220 : 260,
+                  minWidth: 200,
+                }}
+              >
+                <ExperienceCard
+                  experience={exp}
+                  draggable={false}
+                  onEdit={isOwner ? () => openEdit(exp) : undefined}
+                  onDelete={isOwner ? () => handleDelete(exp) : undefined}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {expQ.isLoading ? (
         <Spin />

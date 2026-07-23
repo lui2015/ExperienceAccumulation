@@ -23,7 +23,8 @@ from app.core.security import (
     verify_open_token,
 )
 from app.db.session import get_db
-from app.models._helpers import gen_uuid
+from app.models._helpers import gen_uuid, utcnow
+from app.models.api_call_log import ApiCallLog
 from app.models.category import Category
 from app.models.experience import Experience
 from app.models.group import Group
@@ -57,6 +58,12 @@ class OpenCategoryOut(BaseModel):
 class OpenMetaOut(BaseModel):
     categories: list[OpenCategoryOut]
     cover_presets: list[dict[str, str]]
+
+
+class OpenStatsOut(BaseModel):
+    """开放接口调用统计。"""
+    total_calls: int
+    today_calls: int
 
 
 # ----------------------------- Bearer 鉴权 ----------------------------- #
@@ -111,13 +118,49 @@ def open_token_status(
     return OpenTokenStatus(exists=bool(user.api_token_hash))
 
 
+# ----------------------------- 调用统计（站主 Cookie） ----------------------------- #
+@router.get("/stats", response_model=OpenStatsOut)
+def open_stats(
+    user: Annotated[User, Depends(require_owner)],
+    db: Session = Depends(get_db),
+) -> OpenStatsOut:
+    """返回开放接口累计调用次数与当日调用次数。"""
+    total_calls = db.query(func.count(ApiCallLog.id)).scalar() or 0
+    today_start = utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_calls = (
+        db.query(func.count(ApiCallLog.id))
+        .filter(ApiCallLog.created_at >= today_start)
+        .scalar()
+        or 0
+    )
+    return OpenStatsOut(total_calls=total_calls, today_calls=today_calls)
+
+
+# ----------------------------- 调用记录 ----------------------------- #
+def _record_call(db: Session, user: User, endpoint: str, status_code: int) -> None:
+    """写入一次开放接口调用记录（非关键路径，异常静默）。"""
+    try:
+        db.add(
+            ApiCallLog(
+                user_id=user.id,
+                user_role=user.role,
+                endpoint=endpoint,
+                status_code=status_code,
+            )
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+
+
 # ----------------------------- 元数据（Bearer） ----------------------------- #
 @router.get("/meta", response_model=OpenMetaOut)
 def open_meta(
-    _: Annotated[User, Depends(get_user_by_open_token)],
+    user: Annotated[User, Depends(get_user_by_open_token)],
     db: Session = Depends(get_db),
 ) -> OpenMetaOut:
     """返回可用分类与封面预设，供 AI 提交前枚举合法取值。"""
+    _record_call(db, user, "/open/meta", 200)
     cats = db.query(Category).order_by(Category.order).all()
     return OpenMetaOut(
         categories=[OpenCategoryOut(id=c.id, name=c.name, slug=c.slug) for c in cats],
@@ -239,6 +282,8 @@ async def open_create_experience(
     db.add(exp)
     db.commit()
     db.refresh(exp)
+
+    _record_call(db, user, "/open/experiences", 200)
 
     html_text = search_svc.extract_text_from_file(exp.html_path)
     search_svc.upsert_index(

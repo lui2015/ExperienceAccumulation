@@ -4,3 +4,4 @@ from app.models.category import Category  # noqa: F401
 from app.models.group import Group  # noqa: F401
 from app.models.experience import Experience  # noqa: F401
 from app.models.audit_log import AuditLog  # noqa: F401
+from app.models.api_call_log import ApiCallLog  # noqa: F401
