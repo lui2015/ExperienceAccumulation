@@ -59,18 +59,26 @@ def _check_group(db: Session, group_id: str | None, category_id: str) -> None:
 
 @router.get("", response_model=list[ExperienceOut])
 def list_experiences(
-    category_id: str,
+    category_id: str | None = None,
     db: Annotated[Session, Depends(get_db)],
     _: Annotated[User, Depends(get_current_user)],
 ) -> list[ExperienceOut]:
     settings = get_settings()
-    if not db.get(Category, category_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "分类不存在")
-    stmt = (
-        select(Experience)
-        .where(Experience.category_id == category_id, Experience.deleted_at.is_(None))
-        .order_by(Experience.order.asc())
-    )
+    if category_id:
+        if not db.get(Category, category_id):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "分类不存在")
+        stmt = (
+            select(Experience)
+            .where(Experience.category_id == category_id, Experience.deleted_at.is_(None))
+            .order_by(Experience.order.asc())
+        )
+    else:
+        # 不传 category_id → 全局最新发布（按更新时间降序）
+        stmt = (
+            select(Experience)
+            .where(Experience.deleted_at.is_(None))
+            .order_by(Experience.updated_at.desc())
+        )
     return [_to_out(e, settings) for e in db.execute(stmt).scalars().all()]
 
 

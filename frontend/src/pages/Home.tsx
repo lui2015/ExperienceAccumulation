@@ -26,6 +26,7 @@ import EmojiPicker from '@/components/EmojiPicker';
 
 const NONE_DROPPABLE = 'group:__none__';
 const NONE_KEY = '__none__';
+const LATEST_KEY = '__latest__';
 
 /** 把分组与经验数据组装成 { groupKey: ExperienceOut[] }，groupKey 为 group.id 或 NONE_KEY */
 function buildBuckets(experiences: ExperienceOut[], groups: GroupOut[]) {
@@ -63,15 +64,18 @@ export default function HomePage() {
   const categoriesQ = useQuery({ queryKey: ['categories'], queryFn: categoryApi.list });
   const categories = categoriesQ.data ?? [];
 
+  const isLatest = slug === 'latest';
+
   const activeCat = useMemo(() => {
+    if (isLatest) return null; // 最新发布 tab 不关联具体分类
     if (!categories.length) return null;
     if (slug) return categories.find((c) => c.slug === slug) ?? categories[0];
     return categories[0];
-  }, [categories, slug]);
+  }, [categories, slug, isLatest]);
 
   useEffect(() => {
-    if (activeCat && !slug) navigate(`/c/${activeCat.slug}`, { replace: true });
-  }, [activeCat, slug, navigate]);
+    if (!isLatest && activeCat && !slug) navigate(`/c/${activeCat.slug}`, { replace: true });
+  }, [activeCat, slug, navigate, isLatest]);
 
   // 2) 该分类下的分组
   const groupsQ = useQuery({
@@ -84,11 +88,13 @@ export default function HomePage() {
     [groupsQ.data],
   );
 
-  // 3) 经验
+  // 3) 经验（"最新发布" tab 用全局接口，否则按分类查询）
   const expQ = useQuery({
-    queryKey: ['experiences', activeCat?.id],
-    queryFn: () => experienceApi.list(activeCat!.id),
-    enabled: !!activeCat,
+    queryKey: isLatest ? ['experiences', 'latest'] : ['experiences', activeCat?.id],
+    queryFn: isLatest
+      ? () => experienceApi.listLatest()
+      : () => experienceApi.list(activeCat!.id),
+    enabled: isLatest ? true : !!activeCat,
   });
 
   // 本地 buckets（拖拽时乐观更新）
@@ -339,16 +345,7 @@ export default function HomePage() {
     });
   };
 
-  // 8) 最新发布：按时间倒序取前10条（hooks 必须在条件渲染外）
-  const latestExperiences = useMemo(
-    () =>
-      expQ.data
-        ? [...expQ.data].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()).slice(0, 10)
-        : [],
-    [expQ.data],
-  );
-
-  // 9) 渲染
+  // 8) 渲染
   if (categoriesQ.isLoading) return <Spin />;
   if (!categories.length) return <Empty description="还没有分类，请在「分类管理」中新建" />;
 
@@ -367,30 +364,64 @@ export default function HomePage() {
     <div>
       <Tabs
         className="cy-tabs"
-        activeKey={activeCat?.id}
+        activeKey={isLatest ? LATEST_KEY : activeCat?.id}
         onChange={(id) => {
-          const c = categories.find((x) => x.id === id);
-          if (c) navigate(`/c/${c.slug}`);
+          if (id === LATEST_KEY) {
+            navigate('/latest');
+          } else {
+            const c = categories.find((x) => x.id === id);
+            if (c) navigate(`/c/${c.slug}`);
+          }
         }}
-        items={categories.map((c) => ({
-          key: c.id,
-          label: (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              {c.icon ? <span style={{ fontSize: 16 }}>{c.icon}</span> : null}
-              <span>{c.name}</span>
-            </span>
-          ),
-        }))}
+        items={[
+          {
+            key: LATEST_KEY,
+            label: (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <ClockCircleOutlined
+                  style={{
+                    fontSize: 16,
+                    color: 'var(--cy-neon-pink)',
+                    textShadow: '0 0 12px rgba(255, 46, 195, 0.5)',
+                  }}
+                />
+                <span>最新发布</span>
+                {expQ.data && !isLatest ? null : (
+                  <span
+                    style={{
+                      fontFamily: 'var(--cy-font-mono)',
+                      fontSize: 11,
+                      color: 'var(--cy-text-faint)',
+                    }}
+                  >
+                    [{isLatest ? expQ.data?.length ?? 0 : ''}]
+                  </span>
+                )}
+              </span>
+            ),
+          },
+          ...categories.map((c) => ({
+            key: c.id,
+            label: (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                {c.icon ? <span style={{ fontSize: 16 }}>{c.icon}</span> : null}
+                <span>{c.name}</span>
+              </span>
+            ),
+          })),
+        ]}
         tabBarExtraContent={
           isOwner ? (
             <Space size={isMobile ? 4 : 8}>
-              <Button
-                icon={<FolderAddOutlined />}
-                onClick={() => setAddGroupOpen(true)}
-                size={isMobile ? 'small' : 'middle'}
-              >
-                {isMobile ? '' : '新增分组'}
-              </Button>
+              {!isLatest && (
+                <Button
+                  icon={<FolderAddOutlined />}
+                  onClick={() => setAddGroupOpen(true)}
+                  size={isMobile ? 'small' : 'middle'}
+                >
+                  {isMobile ? '' : '新增分组'}
+                </Button>
+              )}
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
@@ -404,131 +435,107 @@ export default function HomePage() {
         }
       />
 
-      {/* 最新发布：按时间倒序展示最近的经验 */}
-      {!expQ.isLoading && latestExperiences.length > 0 && (
-        <section style={{ marginTop: 4, marginBottom: 8 }}>
+      {/* 最新发布 tab 内容：全局最近上传的内容（网格布局） */}
+      {isLatest && (
+        expQ.isLoading ? (
+          <Spin />
+        ) : !expQ.data || expQ.data.length === 0 ? (
+          <div style={{ padding: '64px 0', textAlign: 'center' }}>
+            <div
+              style={{
+                fontFamily: 'var(--cy-font-mono)',
+                color: 'var(--cy-text-faint)',
+                letterSpacing: '0.2em',
+                fontSize: 13,
+              }}
+            >
+              ＜ NO_DATA / EMPTY_NODE ＞
+            </div>
+            <div style={{ marginTop: 12, color: 'var(--cy-text-dim)' }}>暂无任何经验内容</div>
+          </div>
+        ) : (
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              marginBottom: 14,
-              paddingBottom: 8,
-              borderBottom: '1px solid rgba(124, 92, 255, 0.2)',
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))',
+              gap: 16,
+              marginTop: 4,
             }}
           >
-            <ClockCircleOutlined
-              style={{
-                fontSize: 16,
-                color: 'var(--cy-neon-pink)',
-                textShadow: '0 0 12px rgba(255, 46, 195, 0.5)',
-              }}
-            />
-            <h3
-              style={{
-                margin: 0,
-                fontSize: 15,
-                fontWeight: 600,
-                color: 'var(--cy-text)',
-                letterSpacing: '0.05em',
-                fontFamily: 'var(--cy-font-mono)',
-              }}
-            >
-              最新发布
-            </h3>
-            <span
-              style={{
-                fontFamily: 'var(--cy-font-mono)',
-                fontSize: 11,
-                color: 'var(--cy-text-faint)',
-              }}
-            >
-              [{latestExperiences.length}]
-            </span>
-          </div>
-
-          <div
-            style={{ display: 'flex', gap: 16, overflowX: 'auto', padding: '4px 4px 12px', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          >
-            {latestExperiences.map((exp) => (
-              <div
+            {expQ.data.map((exp) => (
+              <ExperienceCard
                 key={exp.id}
-                style={{
-                  flex: '0 0 auto',
-                  width: isMobile ? 220 : 260,
-                  minWidth: 200,
-                }}
-              >
-                <ExperienceCard
-                  experience={exp}
-                  draggable={false}
-                  onEdit={isOwner ? () => openEdit(exp) : undefined}
-                  onDelete={isOwner ? () => handleDelete(exp) : undefined}
-                />
-              </div>
+                experience={exp}
+                draggable={false}
+                onEdit={isOwner ? () => openEdit(exp) : undefined}
+                onDelete={isOwner ? () => handleDelete(exp) : undefined}
+              />
             ))}
           </div>
-        </section>
+        )
       )}
 
-      {expQ.isLoading ? (
-        <Spin />
-      ) : allCardIds.length === 0 && groups.length === 0 ? (
-        <div style={{ padding: '64px 0', textAlign: 'center' }}>
-          <div
-            style={{
-              fontFamily: 'var(--cy-font-mono)',
-              color: 'var(--cy-text-faint)',
-              letterSpacing: '0.2em',
-              fontSize: 13,
-            }}
+      {/* 分类 tab 内容：分组列表 + 拖拽排序 */}
+      {!isLatest && (
+        expQ.isLoading ? (
+          <Spin />
+        ) : allCardIds.length === 0 && groups.length === 0 ? (
+          <div style={{ padding: '64px 0', textAlign: 'center' }}>
+            <div
+              style={{
+                fontFamily: 'var(--cy-font-mono)',
+                color: 'var(--cy-text-faint)',
+                letterSpacing: '0.2em',
+                fontSize: 13,
+              }}
+            >
+              ＜ NO_DATA / EMPTY_NODE ＞
+            </div>
+            <div style={{ marginTop: 12, color: 'var(--cy-text-dim)' }}>
+              {isOwner
+                ? '点击右上角「新增分组」整理结构，或直接「新增经验」'
+                : '该分类下暂无内容'}
+            </div>
+          </div>
+        ) : (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
           >
-            ＜ NO_DATA / EMPTY_NODE ＞
-          </div>
-          <div style={{ marginTop: 12, color: 'var(--cy-text-dim)' }}>
-            {isOwner
-              ? '点击右上角「新增分组」整理结构，或直接「新增经验」'
-              : '该分类下暂无内容'}
-          </div>
-        </div>
-      ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragStart={onDragStart}
-          onDragEnd={onDragEnd}
-        >
-          {sectionGroups.map((g) => {
-            const key = g ? g.id : NONE_KEY;
-            return (
-              <GroupSection
-                key={key}
-                group={g}
-                experiences={buckets[key] ?? []}
-                draggable={isOwner}
-                isOwner={isOwner}
-                onEditExperience={isOwner ? openEdit : undefined}
-                onDeleteExperience={isOwner ? handleDelete : undefined}
-                onEditGroup={isOwner && g ? () => editGroupInline(g) : undefined}
-                onDeleteGroup={isOwner && g ? () => deleteGroupInline(g) : undefined}
-              />
-            );
-          })}
-        </DndContext>
+            {sectionGroups.map((g) => {
+              const key = g ? g.id : NONE_KEY;
+              return (
+                <GroupSection
+                  key={key}
+                  group={g}
+                  experiences={buckets[key] ?? []}
+                  draggable={isOwner}
+                  isOwner={isOwner}
+                  onEditExperience={isOwner ? openEdit : undefined}
+                  onDeleteExperience={isOwner ? handleDelete : undefined}
+                  onEditGroup={isOwner && g ? () => editGroupInline(g) : undefined}
+                  onDeleteGroup={isOwner && g ? () => deleteGroupInline(g) : undefined}
+                />
+              );
+            })}
+          </DndContext>
+        )
       )}
 
       {/* 新增经验抽屉 */}
-      {activeCat && (
+      {(activeCat || isLatest) && (
         <ExperienceDrawer
           open={drawerOpen}
           experience={editing}
           categories={categories}
           groups={groups}
-          defaultCategoryId={activeCat.id}
+          defaultCategoryId={activeCat?.id ?? ''}
           onClose={() => setDrawerOpen(false)}
           onSaved={() => {
             setDrawerOpen(false);
-            qc.invalidateQueries({ queryKey: ['experiences', activeCat.id] });
+            qc.invalidateQueries({ queryKey: isLatest ? ['experiences', 'latest'] : ['experiences', activeCat?.id] });
           }}
         />
       )}

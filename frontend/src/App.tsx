@@ -71,6 +71,7 @@ export default function App() {
       >
         <Route path="/" element={<HomePage />} />
         <Route path="/c/:slug" element={<HomePage />} />
+        <Route path="/latest" element={<HomePage />} />
         <Route
           path="/admin/categories"
           element={

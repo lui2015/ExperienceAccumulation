@@ -57,6 +57,9 @@ export const experienceApi = {
     http
       .get<ExperienceOut[]>('/experiences', { params: { category_id: categoryId } })
       .then((r) => r.data),
+  /** 全局最新发布（不传分类，按 updated_at 降序） */
+  listLatest: () =>
+    http.get<ExperienceOut[]>('/experiences').then((r) => r.data),
   create: (form: FormData) =>
     http
       .post<ExperienceOut>('/experiences', form, {
