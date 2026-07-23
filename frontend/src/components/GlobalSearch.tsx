@@ -114,8 +114,8 @@ export default function GlobalSearch({ fullWidth = false, compact = false }: Pro
           if (hits.length > 0) handleOpen(hits[0]);
         }}
         style={{
-          background: 'rgba(11, 13, 24, 0.7)',
-          border: '1px solid rgba(124, 92, 255, 0.4)',
+          background: 'var(--cy-input-bg)',
+          border: '1px solid var(--cy-glass-border)',
         }}
       />
 
@@ -133,7 +133,7 @@ export default function GlobalSearch({ fullWidth = false, compact = false }: Pro
             zIndex: 200,
             padding: 12,
             boxShadow:
-              '0 0 0 1px rgba(124, 92, 255, 0.35), 0 20px 60px -10px rgba(0, 0, 0, 0.6)',
+              '0 0 0 1px var(--cy-glass-border), 0 20px 60px -10px rgba(0, 0, 0, 0.6)',
           }}
         >
           {/* 模式切换 */}
@@ -200,19 +200,19 @@ export default function GlobalSearch({ fullWidth = false, compact = false }: Pro
                   }}
                   style={{
                     padding: '10px 12px',
-                    border: '1px solid rgba(124, 92, 255, 0.18)',
+                    border: '1px solid var(--cy-line)',
                     borderRadius: 8,
                     cursor: 'pointer',
-                    background: 'rgba(20, 22, 50, 0.45)',
+                    background: 'var(--cy-result-item-bg)',
                     transition: 'border-color 0.15s ease, background 0.15s ease',
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.borderColor = 'var(--cy-neon-pink)';
-                    e.currentTarget.style.background = 'rgba(255, 46, 195, 0.08)';
+                    e.currentTarget.style.background = 'var(--cy-card-sheen)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(124, 92, 255, 0.18)';
-                    e.currentTarget.style.background = 'rgba(20, 22, 50, 0.45)';
+                    e.currentTarget.style.borderColor = 'var(--cy-line)';
+                    e.currentTarget.style.background = 'var(--cy-result-item-bg)';
                   }}
                 >
                   {/* 路径徽章 */}
@@ -270,7 +270,7 @@ export default function GlobalSearch({ fullWidth = false, compact = false }: Pro
                 style={{
                   marginTop: 4,
                   paddingTop: 8,
-                  borderTop: '1px dashed rgba(124, 92, 255, 0.18)',
+                  borderTop: '1px dashed var(--cy-line)',
                   fontFamily: 'var(--cy-font-mono)',
                   fontSize: 11,
                   color: 'var(--cy-text-faint)',

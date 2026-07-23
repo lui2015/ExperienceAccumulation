@@ -47,7 +47,7 @@ export default function GroupSection({
           gap: 12,
           marginBottom: 12,
           paddingBottom: 6,
-          borderBottom: '1px dashed rgba(124, 92, 255, 0.25)',
+          borderBottom: '1px dashed var(--cy-line-strong)',
         }}
       >
         <span
@@ -113,9 +113,9 @@ export default function GroupSection({
             padding: 8,
             borderRadius: 10,
             border: `1px dashed ${
-              isOver ? 'var(--cy-neon-pink)' : 'rgba(124, 92, 255, 0.15)'
+              isOver ? 'var(--cy-neon-pink)' : 'var(--cy-line)'
             }`,
-            background: isOver ? 'rgba(255, 46, 195, 0.05)' : 'transparent',
+            background: isOver ? 'var(--cy-card-sheen)' : 'transparent',
             transition: 'background 0.2s ease, border-color 0.2s ease',
           }}
         >

@@ -72,7 +72,7 @@ export default function ExperienceCard({ experience, draggable, onEdit, onDelete
             position: 'relative',
             background: experience.has_cover && experience.cover_url
               ? `url(${experience.cover_url}) center/cover no-repeat`
-              : 'linear-gradient(135deg, rgba(124, 92, 255, 0.2), rgba(255, 46, 195, 0.15) 50%, rgba(0, 229, 255, 0.15))',
+              : 'linear-gradient(135deg, color-mix(in srgb, var(--cy-neon-purple) 20%, transparent), color-mix(in srgb, var(--cy-neon-pink) 15%, transparent) 50%, color-mix(in srgb, var(--cy-neon-cyan) 15%, transparent))',
           }}
         >
           {!experience.has_cover && (
@@ -113,7 +113,7 @@ export default function ExperienceCard({ experience, draggable, onEdit, onDelete
               fontSize: 10,
               padding: '2px 8px',
               borderRadius: 4,
-              background: 'rgba(6, 7, 13, 0.7)',
+              background: 'var(--cy-badge-bg)',
               border: '1px solid rgba(0, 229, 255, 0.5)',
               color: 'var(--cy-neon-cyan)',
               letterSpacing: '0.08em',

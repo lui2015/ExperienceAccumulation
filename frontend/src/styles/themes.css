@@ -1,0 +1,252 @@
+/* ==========================================================================
+   多主题配色覆盖
+   - 默认主题（赛博朋克）的各项变量在 cyberpunk.css 的 :root 中定义。
+   - 切换方式：<html data-theme="xxx">，由 ThemeProvider 注入并持久化。
+   每个主题只需重写与 :root 不一致的变量即可，结构/动画保持不变。
+   ========================================================================== */
+
+/* ---------- 午夜深蓝 ---------- */
+[data-theme='midnight'] {
+  --cy-bg-0: #05070f;
+  --cy-bg-1: #0a0f1f;
+  --cy-bg-2: #0f1730;
+  --cy-bg-3: #16203f;
+  --cy-line: rgba(56, 128, 255, 0.18);
+  --cy-line-strong: rgba(64, 180, 255, 0.55);
+  --cy-text: #eaf1ff;
+  --cy-text-dim: #8fa3c8;
+  --cy-text-faint: #4a5a80;
+  --cy-neon-pink: #5b8cff;
+  --cy-neon-purple: #6d5cff;
+  --cy-neon-cyan: #38bdf8;
+  --cy-neon-lime: #7dd3fc;
+  --cy-neon-yellow: #fbbf24;
+  --cy-primary: #4f7cff;
+  --cy-primary-glow: rgba(79, 124, 255, 0.55);
+  --cy-danger: #ff5470;
+  --cy-glass: rgba(15, 23, 48, 0.55);
+  --cy-glass-border: rgba(56, 128, 255, 0.35);
+  --cy-glass-grad: linear-gradient(180deg, rgba(15, 23, 48, 0.7), rgba(10, 15, 31, 0.7));
+  --cy-card-grad: linear-gradient(180deg, rgba(22, 35, 70, 0.85), rgba(10, 15, 31, 0.9));
+  --cy-card-sheen: rgba(79, 124, 255, 0.08);
+  --cy-drawer-grad: linear-gradient(180deg, rgba(15, 23, 48, 0.96), rgba(10, 15, 31, 0.98));
+  --cy-dropdown-bg: rgba(15, 23, 48, 0.95);
+  --cy-btn-default-bg: rgba(15, 23, 48, 0.6);
+  --cy-input-bg: rgba(10, 15, 31, 0.7);
+  --cy-upload-bg: rgba(10, 15, 31, 0.6);
+  --cy-table-head-bg: rgba(56, 128, 255, 0.1);
+  --cy-row-hover: rgba(56, 128, 255, 0.06);
+  --cy-tag-bg: rgba(56, 128, 255, 0.12);
+  --cy-tag-border: rgba(56, 128, 255, 0.4);
+  --cy-glow-1: radial-gradient(ellipse 80% 60% at 20% 0%, rgba(56, 128, 255, 0.25), transparent 60%);
+  --cy-glow-2: radial-gradient(ellipse 60% 50% at 90% 10%, rgba(64, 180, 255, 0.18), transparent 60%);
+  --cy-glow-3: radial-gradient(ellipse 70% 60% at 50% 100%, rgba(45, 212, 191, 0.1), transparent 65%);
+  --cy-grid-line: rgba(56, 128, 255, 0.06);
+  --cy-corner-color: var(--cy-neon-cyan);
+  --cy-header-bg: rgba(5, 7, 15, 0.65);
+  --cy-header-border: rgba(56, 128, 255, 0.25);
+  --cy-header-shadow: 0 8px 30px -12px rgba(56, 128, 255, 0.5);
+  --cy-badge-bg: rgba(5, 7, 15, 0.7);
+  --cy-result-item-bg: rgba(15, 23, 48, 0.45);
+  --cy-color-scheme: dark;
+}
+
+/* ---------- 樱花柔粉 ---------- */
+[data-theme='sakura'] {
+  --cy-bg-0: #10070f;
+  --cy-bg-1: #1a0d18;
+  --cy-bg-2: #241225;
+  --cy-bg-3: #2e1830;
+  --cy-line: rgba(255, 128, 200, 0.18);
+  --cy-line-strong: rgba(255, 128, 200, 0.55);
+  --cy-text: #ffeef7;
+  --cy-text-dim: #c89ab4;
+  --cy-text-faint: #7a5a6c;
+  --cy-neon-pink: #ff7ec6;
+  --cy-neon-purple: #c77dff;
+  --cy-neon-cyan: #ff9ed8;
+  --cy-neon-lime: #ffd6f0;
+  --cy-neon-yellow: #ffe08a;
+  --cy-primary: #ff7ec6;
+  --cy-primary-glow: rgba(255, 126, 198, 0.5);
+  --cy-danger: #ff5c8a;
+  --cy-glass: rgba(36, 18, 37, 0.55);
+  --cy-glass-border: rgba(255, 128, 200, 0.35);
+  --cy-glass-grad: linear-gradient(180deg, rgba(36, 18, 37, 0.7), rgba(26, 13, 24, 0.7));
+  --cy-card-grad: linear-gradient(180deg, rgba(46, 24, 48, 0.85), rgba(26, 13, 24, 0.9));
+  --cy-card-sheen: rgba(255, 126, 198, 0.08);
+  --cy-drawer-grad: linear-gradient(180deg, rgba(36, 18, 37, 0.96), rgba(26, 13, 24, 0.98));
+  --cy-dropdown-bg: rgba(36, 18, 37, 0.95);
+  --cy-btn-default-bg: rgba(36, 18, 37, 0.6);
+  --cy-input-bg: rgba(26, 13, 24, 0.7);
+  --cy-upload-bg: rgba(26, 13, 24, 0.6);
+  --cy-table-head-bg: rgba(255, 128, 200, 0.1);
+  --cy-row-hover: rgba(255, 128, 200, 0.06);
+  --cy-tag-bg: rgba(255, 128, 200, 0.12);
+  --cy-tag-border: rgba(255, 128, 200, 0.4);
+  --cy-glow-1: radial-gradient(ellipse 80% 60% at 20% 0%, rgba(255, 128, 200, 0.22), transparent 60%);
+  --cy-glow-2: radial-gradient(ellipse 60% 50% at 90% 10%, rgba(199, 125, 255, 0.18), transparent 60%);
+  --cy-glow-3: radial-gradient(ellipse 70% 60% at 50% 100%, rgba(255, 158, 216, 0.1), transparent 65%);
+  --cy-grid-line: rgba(255, 128, 200, 0.06);
+  --cy-corner-color: var(--cy-neon-cyan);
+  --cy-header-bg: rgba(16, 7, 15, 0.65);
+  --cy-header-border: rgba(255, 128, 200, 0.25);
+  --cy-header-shadow: 0 8px 30px -12px rgba(255, 128, 200, 0.5);
+  --cy-badge-bg: rgba(16, 7, 15, 0.7);
+  --cy-result-item-bg: rgba(36, 18, 37, 0.45);
+  --cy-color-scheme: dark;
+}
+
+/* ---------- 森林绿意 ---------- */
+[data-theme='forest'] {
+  --cy-bg-0: #050d0a;
+  --cy-bg-1: #0a1712;
+  --cy-bg-2: #0e2018;
+  --cy-bg-3: #122a20;
+  --cy-line: rgba(52, 211, 153, 0.18);
+  --cy-line-strong: rgba(52, 211, 153, 0.55);
+  --cy-text: #e6fff2;
+  --cy-text-dim: #8fc4ad;
+  --cy-text-faint: #4a6e5e;
+  --cy-neon-pink: #34d399;
+  --cy-neon-purple: #5eead4;
+  --cy-neon-cyan: #2dd4bf;
+  --cy-neon-lime: #a3e635;
+  --cy-neon-yellow: #facc15;
+  --cy-primary: #2dd4bf;
+  --cy-primary-glow: rgba(45, 212, 191, 0.5);
+  --cy-danger: #fb7185;
+  --cy-glass: rgba(14, 32, 24, 0.55);
+  --cy-glass-border: rgba(52, 211, 153, 0.35);
+  --cy-glass-grad: linear-gradient(180deg, rgba(14, 32, 24, 0.7), rgba(10, 23, 18, 0.7));
+  --cy-card-grad: linear-gradient(180deg, rgba(18, 42, 32, 0.85), rgba(10, 23, 18, 0.9));
+  --cy-card-sheen: rgba(45, 212, 191, 0.08);
+  --cy-drawer-grad: linear-gradient(180deg, rgba(14, 32, 24, 0.96), rgba(10, 23, 18, 0.98));
+  --cy-dropdown-bg: rgba(14, 32, 24, 0.95);
+  --cy-btn-default-bg: rgba(14, 32, 24, 0.6);
+  --cy-input-bg: rgba(10, 23, 18, 0.7);
+  --cy-upload-bg: rgba(10, 23, 18, 0.6);
+  --cy-table-head-bg: rgba(52, 211, 153, 0.1);
+  --cy-row-hover: rgba(52, 211, 153, 0.06);
+  --cy-tag-bg: rgba(52, 211, 153, 0.12);
+  --cy-tag-border: rgba(52, 211, 153, 0.4);
+  --cy-glow-1: radial-gradient(ellipse 80% 60% at 20% 0%, rgba(52, 211, 153, 0.22), transparent 60%);
+  --cy-glow-2: radial-gradient(ellipse 60% 50% at 90% 10%, rgba(45, 212, 191, 0.18), transparent 60%);
+  --cy-glow-3: radial-gradient(ellipse 70% 60% at 50% 100%, rgba(163, 230, 53, 0.1), transparent 65%);
+  --cy-grid-line: rgba(52, 211, 153, 0.06);
+  --cy-corner-color: var(--cy-neon-cyan);
+  --cy-header-bg: rgba(5, 13, 10, 0.65);
+  --cy-header-border: rgba(52, 211, 153, 0.25);
+  --cy-header-shadow: 0 8px 30px -12px rgba(52, 211, 153, 0.5);
+  --cy-badge-bg: rgba(5, 13, 10, 0.7);
+  --cy-result-item-bg: rgba(14, 32, 24, 0.45);
+  --cy-color-scheme: dark;
+}
+
+/* ---------- 日落橙暖 ---------- */
+[data-theme='sunset'] {
+  --cy-bg-0: #0d0805;
+  --cy-bg-1: #170f0a;
+  --cy-bg-2: #211610;
+  --cy-bg-3: #2b1d12;
+  --cy-line: rgba(251, 146, 60, 0.18);
+  --cy-line-strong: rgba(251, 146, 60, 0.55);
+  --cy-text: #fff2e6;
+  --cy-text-dim: #c4a58f;
+  --cy-text-faint: #7a5e4a;
+  --cy-neon-pink: #fb923c;
+  --cy-neon-purple: #f472b6;
+  --cy-neon-cyan: #fbbf24;
+  --cy-neon-lime: #facc15;
+  --cy-neon-yellow: #fde68a;
+  --cy-primary: #fb923c;
+  --cy-primary-glow: rgba(251, 146, 60, 0.5);
+  --cy-danger: #f43f5e;
+  --cy-glass: rgba(33, 22, 16, 0.55);
+  --cy-glass-border: rgba(251, 146, 60, 0.35);
+  --cy-glass-grad: linear-gradient(180deg, rgba(33, 22, 16, 0.7), rgba(23, 15, 10, 0.7));
+  --cy-card-grad: linear-gradient(180deg, rgba(43, 29, 18, 0.85), rgba(23, 15, 10, 0.9));
+  --cy-card-sheen: rgba(251, 146, 60, 0.08);
+  --cy-drawer-grad: linear-gradient(180deg, rgba(33, 22, 16, 0.96), rgba(23, 15, 10, 0.98));
+  --cy-dropdown-bg: rgba(33, 22, 16, 0.95);
+  --cy-btn-default-bg: rgba(33, 22, 16, 0.6);
+  --cy-input-bg: rgba(23, 15, 10, 0.7);
+  --cy-upload-bg: rgba(23, 15, 10, 0.6);
+  --cy-table-head-bg: rgba(251, 146, 60, 0.1);
+  --cy-row-hover: rgba(251, 146, 60, 0.06);
+  --cy-tag-bg: rgba(251, 146, 60, 0.12);
+  --cy-tag-border: rgba(251, 146, 60, 0.4);
+  --cy-glow-1: radial-gradient(ellipse 80% 60% at 20% 0%, rgba(251, 146, 60, 0.22), transparent 60%);
+  --cy-glow-2: radial-gradient(ellipse 60% 50% at 90% 10%, rgba(244, 114, 182, 0.16), transparent 60%);
+  --cy-glow-3: radial-gradient(ellipse 70% 60% at 50% 100%, rgba(250, 204, 21, 0.1), transparent 65%);
+  --cy-grid-line: rgba(251, 146, 60, 0.06);
+  --cy-corner-color: var(--cy-neon-cyan);
+  --cy-header-bg: rgba(13, 8, 5, 0.65);
+  --cy-header-border: rgba(251, 146, 60, 0.25);
+  --cy-header-shadow: 0 8px 30px -12px rgba(251, 146, 60, 0.5);
+  --cy-badge-bg: rgba(13, 8, 5, 0.7);
+  --cy-result-item-bg: rgba(33, 22, 16, 0.45);
+  --cy-color-scheme: dark;
+}
+
+/* ---------- 极简亮色 ---------- */
+[data-theme='light'] {
+  --cy-bg-0: #f5f6fa;
+  --cy-bg-1: #ffffff;
+  --cy-bg-2: #ffffff;
+  --cy-bg-3: #eef0f6;
+  --cy-line: rgba(99, 102, 241, 0.16);
+  --cy-line-strong: rgba(99, 102, 241, 0.45);
+  --cy-text: #1a1c2e;
+  --cy-text-dim: #5b5f7a;
+  --cy-text-faint: #9aa0b8;
+  --cy-neon-pink: #d6336c;
+  --cy-neon-purple: #6d5cff;
+  --cy-neon-cyan: #0ea5b7;
+  --cy-neon-lime: #3f9d00;
+  --cy-neon-yellow: #eab308;
+  --cy-primary: #6d5cff;
+  --cy-primary-glow: rgba(109, 92, 255, 0.3);
+  --cy-danger: #e03131;
+  --cy-glass: rgba(255, 255, 255, 0.7);
+  --cy-glass-border: rgba(99, 102, 241, 0.25);
+  --cy-glass-grad: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(245, 246, 250, 0.85));
+  --cy-card-grad: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(245, 246, 250, 0.95));
+  --cy-card-sheen: rgba(109, 92, 255, 0.06);
+  --cy-drawer-grad: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 249, 252, 0.98));
+  --cy-dropdown-bg: rgba(255, 255, 255, 0.97);
+  --cy-btn-default-bg: rgba(255, 255, 255, 0.9);
+  --cy-input-bg: rgba(255, 255, 255, 0.9);
+  --cy-upload-bg: rgba(255, 255, 255, 0.8);
+  --cy-table-head-bg: rgba(99, 102, 241, 0.08);
+  --cy-row-hover: rgba(99, 102, 241, 0.06);
+  --cy-tag-bg: rgba(109, 92, 255, 0.1);
+  --cy-tag-border: rgba(109, 92, 255, 0.3);
+  --cy-glow-1: radial-gradient(ellipse 80% 60% at 20% 0%, rgba(109, 92, 255, 0.14), transparent 60%);
+  --cy-glow-2: radial-gradient(ellipse 60% 50% at 90% 10%, rgba(14, 165, 183, 0.1), transparent 60%);
+  --cy-glow-3: radial-gradient(ellipse 70% 60% at 50% 100%, rgba(234, 179, 8, 0.08), transparent 65%);
+  --cy-grid-line: rgba(99, 102, 241, 0.05);
+  --cy-corner-color: var(--cy-neon-cyan);
+  --cy-header-bg: rgba(255, 255, 255, 0.8);
+  --cy-header-border: rgba(99, 102, 241, 0.2);
+  --cy-header-shadow: 0 6px 24px -12px rgba(99, 102, 241, 0.35);
+  --cy-badge-bg: rgba(255, 255, 255, 0.85);
+  --cy-result-item-bg: rgba(255, 255, 255, 0.7);
+  --cy-color-scheme: light;
+}
+
+/* 亮色主题下：输入框/选择器文本需更深的边框以保证可见性 */
+[data-theme='light'] .ant-input,
+[data-theme='light'] .ant-input-affix-wrapper,
+[data-theme='light'] .ant-input-password,
+[data-theme='light'] .ant-select .ant-select-selector,
+[data-theme='light'] .ant-input-number {
+  border-color: rgba(99, 102, 241, 0.25) !important;
+}
+
+/* 亮色主题下：抽屉/弹窗边框更柔和 */
+[data-theme='light'] .ant-drawer-content,
+[data-theme='light'] .ant-modal-content {
+  border: 1px solid var(--cy-glass-border) !important;
+  box-shadow: 0 10px 60px -20px rgba(99, 102, 241, 0.35) !important;
+}

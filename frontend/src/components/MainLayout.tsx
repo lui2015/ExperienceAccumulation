@@ -17,6 +17,7 @@ import { useAuthStore } from '@/store/auth';
 import { authApi } from '@/api';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import GlobalSearch from '@/components/GlobalSearch';
+import ThemeSwitcher from '@/components/ThemeSwitcher';
 
 const { Header, Content } = Layout;
 
@@ -147,15 +148,14 @@ export default function MainLayout() {
           alignItems: 'center',
           gap: 12,
           paddingInline: 28,
-          background: 'rgba(6, 7, 13, 0.65)',
+          background: 'var(--cy-header-bg)',
           backdropFilter: 'blur(14px)',
           WebkitBackdropFilter: 'blur(14px)',
-          borderBottom: '1px solid rgba(124, 92, 255, 0.25)',
+          borderBottom: '1px solid var(--cy-header-border)',
           position: 'sticky',
           top: 0,
           zIndex: 100,
-          boxShadow:
-            '0 1px 0 0 rgba(255, 46, 195, 0.25), 0 12px 40px -10px rgba(124, 92, 255, 0.4)',
+          boxShadow: 'var(--cy-header-shadow)',
         }}
       >
         <div
@@ -227,6 +227,7 @@ export default function MainLayout() {
         {!isMobile && user && (
           <Space size={12} align="center">
             <UserBadge username={user.username} isOwner={isOwner} />
+            <ThemeSwitcher />
             <Dropdown
               menu={{ items: settingsMenuItems }}
               placement="bottomRight"
@@ -242,9 +243,9 @@ export default function MainLayout() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   color: 'var(--cy-text)',
-                  border: '1px solid rgba(124, 92, 255, 0.35)',
+                  border: '1px solid var(--cy-glass-border)',
                   borderRadius: 8,
-                  background: 'rgba(20, 22, 50, 0.4)',
+                  background: 'var(--cy-btn-default-bg)',
                 }}
                 aria-label="设置"
               />
@@ -313,6 +314,26 @@ export default function MainLayout() {
           <div style={{ marginBottom: 4 }}>
             <GlobalSearch fullWidth compact />
           </div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              marginBottom: 4,
+            }}
+          >
+            <span
+              style={{
+                fontFamily: 'var(--cy-font-mono)',
+                fontSize: 11,
+                color: 'var(--cy-text-faint)',
+                letterSpacing: '0.18em',
+              }}
+            >
+              🎨 主题
+            </span>
+            <ThemeSwitcher />
+          </div>
           <Button block size="large" icon={<HomeOutlined />} onClick={() => goAndClose('/')}>
             首页
           </Button>
@@ -367,7 +388,7 @@ export default function MainLayout() {
           <div
             style={{
               height: 1,
-              background: 'rgba(124, 92, 255, 0.25)',
+              background: 'var(--cy-line)',
               margin: '12px 0',
             }}
           />
