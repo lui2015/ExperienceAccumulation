@@ -59,9 +59,9 @@ def _check_group(db: Session, group_id: str | None, category_id: str) -> None:
 
 @router.get("", response_model=list[ExperienceOut])
 def list_experiences(
-    category_id: str | None = None,
     db: Annotated[Session, Depends(get_db)],
     _: Annotated[User, Depends(get_current_user)],
+    category_id: str | None = None,
 ) -> list[ExperienceOut]:
     settings = get_settings()
     if category_id:
