@@ -19,6 +19,7 @@ from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.core.deps import require_owner
 from app.db.session import get_db
 from app.models._helpers import gen_uuid, utcnow
@@ -241,4 +242,22 @@ async def open_create_experience(
         html_text=html_text,
     )
     db.commit()
-    return ExperienceOut.from_attributes(exp)
+    settings = get_settings()
+    cover_url = (
+        f"{settings.app_root_path}/api/v1/experiences/{exp.id}/cover"
+        if exp.cover_path
+        else None
+    )
+    return ExperienceOut(
+        id=exp.id,
+        category_id=exp.category_id,
+        group_id=exp.group_id,
+        title=exp.title,
+        summary=exp.summary,
+        cover_url=cover_url,
+        has_cover=bool(exp.cover_path),
+        html_size=exp.html_size,
+        order=exp.order,
+        created_at=exp.created_at,
+        updated_at=exp.updated_at,
+    )
