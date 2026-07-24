@@ -28,6 +28,24 @@ function formatSize(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
+/** 将 ISO 时间字符串格式化为相对时间或简短日期 */
+function formatUpdated(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return '刚刚';
+  if (diffMin < 60) return `${diffMin}分钟前`;
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `${diffH}小时前`;
+  const diffD = Math.floor(diffH / 24);
+  if (diffD < 7) return `${diffD}天前`;
+  // 超过一周显示简短日期
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${m}-${day}`;
+}
+
 export default function ExperienceCard({ experience, draggable, onEdit, onDelete }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: experience.id,
@@ -103,7 +121,7 @@ export default function ExperienceCard({ experience, draggable, onEdit, onDelete
               opacity: 0.7,
             }}
           />
-          {/* 大小标签 */}
+          {/* 更新时间标签 */}
           <div
             style={{
               position: 'absolute',
@@ -119,7 +137,7 @@ export default function ExperienceCard({ experience, draggable, onEdit, onDelete
               letterSpacing: '0.08em',
             }}
           >
-            {formatSize(experience.html_size)}
+            {formatUpdated(experience.updated_at)}
           </div>
         </div>
 
