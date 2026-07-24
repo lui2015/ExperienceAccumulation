@@ -84,7 +84,7 @@ export default function ExperienceCard({ experience, draggable, onEdit, onDelete
 
         {/* Cover */}
         <div
-          className="cy-scanlines"
+          className="cy-scanlines cy-card-cover"
           style={{
             height: 150,
             position: 'relative',
@@ -142,11 +142,12 @@ export default function ExperienceCard({ experience, draggable, onEdit, onDelete
         </div>
 
         {/* Body */}
-        <div style={{ padding: '16px 16px 14px' }}>
+        <div className="cy-card-body" style={{ padding: '16px 16px 14px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <Tooltip title={experience.title}>
                 <div
+                  className="cy-card-title"
                   style={{
                     fontWeight: 600,
                     fontSize: 15,
@@ -179,7 +180,7 @@ export default function ExperienceCard({ experience, draggable, onEdit, onDelete
             </div>
 
             {/* 右侧操作区：拖拽、分享、菜单（访客也始终能看到分享按钮） */}
-            <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', gap: 2 }}>
+            <div onClick={(e) => e.stopPropagation()} className="cy-card-actions" style={{ display: 'flex', gap: 2 }}>
               {draggable && (
                   <Tooltip title="按住拖动排序">
                     <span

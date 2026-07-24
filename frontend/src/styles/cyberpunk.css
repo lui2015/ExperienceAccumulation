@@ -473,6 +473,20 @@ mark {
    - lg 端：>= 1024px（桌面）
    ========================================================================== */
 
+/* 「最新发布」网格：桌面/大屏多列自适应，minmax(0,1fr) 防止内容撑破溢出 */
+.cy-latest-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 4px;
+}
+/* 超窄屏（如 iPhone SE 竖屏）退回单列，避免卡片过窄 */
+@media (max-width: 379px) {
+  .cy-latest-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* 触屏设备：所有可点击元素的 hit area 至少 44px（iOS HIG 推荐） */
 @media (hover: none) and (pointer: coarse) {
   .ant-btn {
@@ -513,6 +527,12 @@ mark {
   }
   body::after {
     background-size: 32px 32px;
+  }
+
+  /* 「最新发布」网格：平板下卡片略收窄，列数自适应 */
+  .cy-latest-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
   }
 }
 
@@ -602,6 +622,35 @@ mark {
   /* 卡片间距收紧 */
   .cy-card {
     border-radius: 10px;
+  }
+
+  /* 「最新发布」网格：手机 2 列紧凑卡片，使用 minmax(0,1fr) 防止内容撑破溢出 */
+  .cy-latest-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  /* 窄屏卡片封面收短、内边距收紧、标题改为最多 2 行（完整展示不裁切） */
+  .cy-card-cover {
+    height: 116px !important;
+  }
+  .cy-card-body {
+    padding: 12px 12px 10px !important;
+  }
+  .cy-card-body .cy-card-title {
+    font-size: 14px !important;
+    white-space: normal !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+  .cy-card-body .cy-card-summary {
+    font-size: 11px !important;
+    margin-top: 4px !important;
+  }
+  /* 操作区不挤压标题 */
+  .cy-card-actions {
+    flex-shrink: 0;
   }
   .cy-corner {
     width: 10px;

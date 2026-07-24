@@ -456,14 +456,7 @@ export default function HomePage() {
             <div style={{ marginTop: 12, color: 'var(--cy-text-dim)' }}>暂无任何经验内容</div>
           </div>
         ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))',
-              gap: 16,
-              marginTop: 4,
-            }}
-          >
+          <div className="cy-latest-grid">
             {expQ.data.map((exp) => (
               <ExperienceCard
                 key={exp.id}
