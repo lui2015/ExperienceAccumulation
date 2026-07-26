@@ -90,6 +90,13 @@ export default function HomePage() {
     [groupsQ.data],
   );
 
+  // 分类 id → 名称 映射（用于在「最新发布」卡片上展示来源分类）
+  const categoryNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    categories.forEach((c) => m.set(c.id, c.name));
+    return m;
+  }, [categories]);
+
   // 3) 经验（"最新发布" tab 用全局接口，否则按分类查询）
   const expQ = useQuery({
     queryKey: isLatest ? ['experiences', 'latest'] : ['experiences', activeCat?.id],
@@ -461,6 +468,7 @@ export default function HomePage() {
               <ExperienceCard
                 key={exp.id}
                 experience={exp}
+                categoryName={categoryNameById.get(exp.category_id)}
                 draggable={false}
                 onEdit={isOwner ? () => openEdit(exp) : undefined}
                 onDelete={isOwner ? () => handleDelete(exp) : undefined}

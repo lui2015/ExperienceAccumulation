@@ -18,6 +18,8 @@ import ShareModal from './ShareModal';
 interface Props {
   experience: ExperienceOut;
   draggable: boolean;
+  /** 所属分类名称，仅在「最新发布」等跨分类场景传入以展示来源分类 */
+  categoryName?: string;
   onEdit?: () => void;
   onDelete?: () => void;
 }
@@ -46,7 +48,7 @@ function formatUpdated(iso: string): string {
   return `${m}-${day}`;
 }
 
-export default function ExperienceCard({ experience, draggable, onEdit, onDelete }: Props) {
+export default function ExperienceCard({ experience, draggable, categoryName, onEdit, onDelete }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: experience.id,
     disabled: !draggable,
@@ -145,6 +147,33 @@ export default function ExperienceCard({ experience, draggable, onEdit, onDelete
         <div className="cy-card-body" style={{ padding: '16px 16px 14px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
+              {categoryName && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
+                  <span
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      flexShrink: 0,
+                      background: 'var(--cy-neon-cyan)',
+                      boxShadow: '0 0 6px var(--cy-neon-cyan)',
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: 'var(--cy-neon-cyan)',
+                      opacity: 0.9,
+                      letterSpacing: '0.04em',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {categoryName}
+                  </span>
+                </div>
+              )}
               <Tooltip title={experience.title}>
                 <div
                   className="cy-card-title"
