@@ -117,7 +117,8 @@ def open_meta(
 
 # ----------------------------- 提交经验（免令牌） ----------------------------- #
 def _slugify(name: str) -> str:
-    s = re.sub(r"[^a-zA-Z0-9\u4e00-\u9fff]+", "-", name.strip().lower()).strip("-")
+    # 仅保留 ASCII 字母数字，其余（含中文）替换为连字符；为空时回退为短 uuid。
+    s = re.sub(r"[^a-zA-Z0-9]+", "-", name.strip().lower()).strip("-")
     return (s or gen_uuid()[:8])[:60]
 
 

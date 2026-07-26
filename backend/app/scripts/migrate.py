@@ -5,11 +5,14 @@
 
 幂等：可重复执行；启动时由 init_data 调用。
 """
+import re as _re
 from sqlalchemy import inspect, select, text
 
 from app.db.session import Base, SessionLocal, engine
 from app.models import Group  # noqa: F401  注册到 metadata
+from app.models._helpers import gen_uuid
 from app.models.api_call_log import ApiCallLog  # noqa: F401  注册到 metadata
+from app.models.category import Category
 from app.models.experience import Experience
 from app.services.search import (
     delete_index,
@@ -17,6 +20,8 @@ from app.services.search import (
     init_fts,
     upsert_index,
 )
+
+_SLUG_RE = _re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
 
 
 def _ensure_groups_and_group_id() -> None:
@@ -126,11 +131,34 @@ def _ensure_api_call_logs() -> None:
         print("[migrate] 已创建表 api_call_logs")
 
 
+def _normalize_category_slugs() -> None:
+    """将含非 ASCII（如中文）的分类 slug 规范化为 ASCII，避免丑陋 URL。
+    开放接口在放宽 slug 校验前可能写入中文 slug，这里幂等地修正它们。"""
+    changed = 0
+    with SessionLocal() as db:
+        for cat in db.execute(select(Category)).scalars():
+            if _SLUG_RE.match(cat.slug or ""):
+                continue
+            base = (
+                _re.sub(r"[^a-zA-Z0-9]+", "-", (cat.slug or cat.name or "").strip().lower()).strip("-")
+                or gen_uuid()[:8]
+            )
+            slug = base
+            while db.execute(select(Category).where(Category.slug == slug)).first():
+                slug = f"{base}-{gen_uuid()[:4]}"
+            cat.slug = slug
+            changed += 1
+        if changed:
+            db.commit()
+            print(f"[migrate] 已规范化 {changed} 个分类 slug")
+
+
 def migrate() -> None:
     _ensure_groups_and_group_id()
     _ensure_fts()
     _ensure_api_token_hash()
     _ensure_api_call_logs()
+    _normalize_category_slugs()
     Base.metadata.create_all(bind=engine)
 
 

@@ -93,10 +93,31 @@ export default function SettingsPage() {
   }, []);
 
   const copy = (text: string, okText = '已复制到剪贴板') => {
-    navigator.clipboard.writeText(text).then(
-      () => message.success(okText),
-      () => message.error('复制失败，请手动选择复制'),
-    );
+    const fallback = () => {
+      const el = document.createElement('textarea');
+      el.value = text;
+      el.style.position = 'fixed';
+      el.style.top = '-9999px';
+      el.style.opacity = '0';
+      document.body.appendChild(el);
+      el.focus();
+      el.select();
+      try {
+        document.execCommand('copy');
+        message.success(okText);
+      } catch {
+        message.error('复制失败，请手动选择复制');
+      }
+      document.body.removeChild(el);
+    };
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(
+        () => message.success(okText),
+        () => fallback(),
+      );
+    } else {
+      fallback();
+    }
   };
 
   const prompt = buildPrompt(apiBase);

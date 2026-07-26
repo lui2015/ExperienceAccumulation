@@ -11,6 +11,8 @@ class CategoryBase(BaseModel):
     name: str = Field(min_length=1, max_length=64)
     icon: str | None = Field(default=None, max_length=32)
 
+
+class CategoryCreate(CategoryBase):
     @field_validator("slug")
     @classmethod
     def _slug_format(cls, v: str) -> str:
@@ -18,10 +20,6 @@ class CategoryBase(BaseModel):
         if not _SLUG_PATTERN.match(v):
             raise ValueError("slug 仅允许小写字母、数字、连字符，且不能以连字符开头")
         return v
-
-
-class CategoryCreate(CategoryBase):
-    pass
 
 
 class CategoryUpdate(BaseModel):
