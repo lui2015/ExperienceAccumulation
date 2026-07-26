@@ -121,7 +121,7 @@ export default function ExperienceCard({ experience, draggable, onEdit, onDelete
               opacity: 0.7,
             }}
           />
-          {/* 更新时间标签 */}
+          {/* 上传时间标签 */}
           <div
             style={{
               position: 'absolute',
@@ -137,7 +137,7 @@ export default function ExperienceCard({ experience, draggable, onEdit, onDelete
               letterSpacing: '0.08em',
             }}
           >
-            {formatUpdated(experience.updated_at)}
+            {formatUpdated(experience.created_at)}
           </div>
         </div>
 

@@ -73,11 +73,11 @@ def list_experiences(
             .order_by(Experience.order.asc())
         )
     else:
-        # 不传 category_id → 全局最新发布（按更新时间降序）
+        # 不传 category_id → 全局最新发布（按上传时间降序）
         stmt = (
             select(Experience)
             .where(Experience.deleted_at.is_(None))
-            .order_by(Experience.updated_at.desc())
+            .order_by(Experience.created_at.desc())
         )
     return [_to_out(e, settings) for e in db.execute(stmt).scalars().all()]
 
