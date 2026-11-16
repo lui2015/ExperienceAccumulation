@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from fastapi import HTTPException, UploadFile, status
 
 from app.core.config import get_settings
+from app.services import cos as cos_svc
 
 # 允许的图片类型 + magic number 头
 _IMAGE_SIGNATURES: dict[str, tuple[bytes, ...]] = {
@@ -62,8 +63,36 @@ def _read_with_limit(file: UploadFile, max_bytes: int, kind: str) -> bytes:
     return file.file.read()
 
 
+def read_file_bytes(rel_path: str) -> bytes | None:
+    """读取文件字节：COS 启用时优先远端，失败自动回退本地；未启用则只读本地。
+
+    返回 None 表示两端都不存在。供 HTML 下载、批量打包、索引抽取统一使用。
+    """
+    settings = get_settings()
+    if cos_svc.is_enabled():
+        try:
+            return cos_svc.download_bytes(rel_path)
+        except Exception:
+            # COS 故障/对象缺失时回退本地副本，保证服务不中断
+            pass
+    abs_path = settings.storage_dir / rel_path
+    return abs_path.read_bytes() if abs_path.is_file() else None
+
+
+def _persist_html(rel_path: str, content: bytes) -> None:
+    """写 HTML：COS 启用时上传；按配置保留本地副本。"""
+    settings = get_settings()
+    if cos_svc.is_enabled():
+        cos_svc.upload_bytes(rel_path, content, content_type="text/html; charset=utf-8")
+        if not settings.cos_keep_local:
+            return
+    abs_path = settings.storage_dir / rel_path
+    abs_path.parent.mkdir(parents=True, exist_ok=True)
+    abs_path.write_bytes(content)
+
+
 def save_html_file(file: UploadFile, target_id: str) -> tuple[str, int]:
-    """保存 HTML 文件到 storage/html/{target_id}.html，返回相对路径与字节数。"""
+    """保存 HTML 到 html/{target_id}.html（COS 启用时上传 COS），返回相对路径与字节数。"""
     settings = get_settings()
     if not (file.filename or "").lower().endswith(".html") and not (file.filename or "").lower().endswith(".htm"):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "仅支持 .html / .htm 文件")
@@ -71,14 +100,12 @@ def save_html_file(file: UploadFile, target_id: str) -> tuple[str, int]:
     _ensure_html(content)
 
     rel_path = f"html/{target_id}.html"
-    abs_path = settings.storage_dir / rel_path
-    abs_path.parent.mkdir(parents=True, exist_ok=True)
-    abs_path.write_bytes(content)
+    _persist_html(rel_path, content)
     return rel_path, len(content)
 
 
 def save_html_text(html_text: str, target_id: str) -> tuple[str, int]:
-    """将原始 HTML 文本直接落盘（供开放接口提交，避免 AI 传递文件）。"""
+    """将原始 HTML 文本保存（供开放接口提交，避免 AI 传递文件）。"""
     settings = get_settings()
     raw = html_text.encode("utf-8")
     _ensure_html(raw)
@@ -88,9 +115,7 @@ def save_html_text(html_text: str, target_id: str) -> tuple[str, int]:
             f"HTML 内容超过 {settings.max_html_bytes // 1024 // 1024}MB 限制",
         )
     rel_path = f"html/{target_id}.html"
-    abs_path = settings.storage_dir / rel_path
-    abs_path.parent.mkdir(parents=True, exist_ok=True)
-    abs_path.write_bytes(raw)
+    _persist_html(rel_path, raw)
     return rel_path, len(raw)
 
 
@@ -109,9 +134,11 @@ def save_cover_file(file: UploadFile, target_id: str) -> str:
 
 
 def remove_file(rel_path: str | None) -> None:
-    """安全删除文件，禁止路径穿越。"""
+    """安全删除文件，禁止路径穿越；COS 启用时同步删除远端对象。"""
     if not rel_path:
         return
+    if cos_svc.is_enabled():
+        cos_svc.delete(rel_path)
     settings = get_settings()
     abs_target = (settings.storage_dir / rel_path).resolve()
     base = settings.storage_dir.resolve()

@@ -36,8 +36,8 @@ def download_html(token: str, db: Annotated[Session, Depends(get_db)]) -> Respon
     if not exp or exp.deleted_at is not None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "经验不存在")
 
-    abs_path = storage_svc.storage_path(exp.html_path)
-    if not abs_path.is_file():
+    content = storage_svc.read_file_bytes(exp.html_path)
+    if content is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "文件丢失")
 
     # 安全响应头：阻止脚本访问主站
@@ -47,7 +47,7 @@ def download_html(token: str, db: Annotated[Session, Depends(get_db)]) -> Respon
         # 浏览器侧再加一层 CSP（与 iframe sandbox 互补）
         "Content-Security-Policy": "frame-ancestors 'self' " + get_settings().app_base_url,
     }
-    return FileResponse(abs_path, media_type="text/html; charset=utf-8", headers=headers)
+    return Response(content=content, media_type="text/html; charset=utf-8", headers=headers)
 
 
 @router.get("/api/v1/experiences/{exp_id}/cover")

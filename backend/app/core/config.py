@@ -29,6 +29,17 @@ class Settings(BaseSettings):
     storage_dir: Path = Path("./storage")
     backup_dir: Path = Path("./backups")
 
+    # COS 对象存储（可选）：凭证仅从环境变量读取，不写入代码/数据库
+    cos_enabled: bool = False
+    cos_bucket: str = ""
+    cos_region: str = "ap-guangzhou"
+    cos_secret_id: str = ""
+    cos_secret_key: str = ""
+    # 对象 key 前缀，如 experience → experience/html/{id}.html；留空则存到 bucket 根
+    cos_prefix: str = ""
+    # 上传 COS 后是否保留本地副本（迁移期建议开启，便于回退）
+    cos_keep_local: bool = True
+
     # Limits
     max_html_size_mb: int = 20
     max_cover_size_mb: int = 5

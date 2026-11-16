@@ -350,8 +350,8 @@ def batch_download_html(
     seen_names: dict[str, int] = {}
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         for exp in exps:
-            abs_path = storage_svc.storage_path(exp.html_path)
-            if not abs_path.is_file():
+            content = storage_svc.read_file_bytes(exp.html_path)
+            if content is None:
                 continue
 
             # 安全文件名：去除路径分隔符等危险字符，保留中文
@@ -365,7 +365,7 @@ def batch_download_html(
                 seen_names[base] = 0
                 arcname = f"{base}.html"
 
-            zf.write(abs_path, arcname)
+            zf.writestr(arcname, content)
 
     if seen_names:
         # 有文件写入
