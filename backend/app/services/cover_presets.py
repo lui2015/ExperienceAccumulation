@@ -5,7 +5,6 @@
 """
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 
 from app.core.config import get_settings
@@ -66,9 +65,8 @@ def apply_preset_to_experience(key: str, experience_id: str) -> str:
     if src is None:
         raise ValueError(f"未知封面预设：{key}")
 
-    settings = get_settings()
+    from app.services.storage import persist_bytes
+
     rel_path = f"covers/{experience_id}.svg"
-    dst = settings.storage_dir / rel_path
-    dst.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(src, dst)
+    persist_bytes(rel_path, src.read_bytes(), content_type="image/svg+xml")
     return rel_path

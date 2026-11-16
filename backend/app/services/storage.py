@@ -79,16 +79,24 @@ def read_file_bytes(rel_path: str) -> bytes | None:
     return abs_path.read_bytes() if abs_path.is_file() else None
 
 
-def _persist_html(rel_path: str, content: bytes) -> None:
-    """写 HTML：COS 启用时上传；按配置保留本地副本。"""
+def _persist(rel_path: str, content: bytes, content_type: str | None = None) -> None:
+    """统一持久化：COS 启用时上传；按配置保留本地副本。
+
+    平台后台与开放 API 的所有文件写入都经过这里，保证存储后端一致。
+    """
     settings = get_settings()
     if cos_svc.is_enabled():
-        cos_svc.upload_bytes(rel_path, content, content_type="text/html; charset=utf-8")
+        cos_svc.upload_bytes(rel_path, content, content_type=content_type)
         if not settings.cos_keep_local:
             return
     abs_path = settings.storage_dir / rel_path
     abs_path.parent.mkdir(parents=True, exist_ok=True)
     abs_path.write_bytes(content)
+
+
+def persist_bytes(rel_path: str, content: bytes, content_type: str | None = None) -> None:
+    """公开的统一写入口：平台/API 上传的任意文件都应经此持久化。"""
+    _persist(rel_path, content, content_type=content_type)
 
 
 def save_html_file(file: UploadFile, target_id: str) -> tuple[str, int]:
@@ -100,7 +108,7 @@ def save_html_file(file: UploadFile, target_id: str) -> tuple[str, int]:
     _ensure_html(content)
 
     rel_path = f"html/{target_id}.html"
-    _persist_html(rel_path, content)
+    _persist(rel_path, content, content_type="text/html; charset=utf-8")
     return rel_path, len(content)
 
 
@@ -115,21 +123,19 @@ def save_html_text(html_text: str, target_id: str) -> tuple[str, int]:
             f"HTML 内容超过 {settings.max_html_bytes // 1024 // 1024}MB 限制",
         )
     rel_path = f"html/{target_id}.html"
-    _persist_html(rel_path, raw)
+    _persist(rel_path, raw, content_type="text/html; charset=utf-8")
     return rel_path, len(raw)
 
 
 def save_cover_file(file: UploadFile, target_id: str) -> str:
-    """保存封面图，返回相对路径。"""
+    """保存封面图（COS 启用时上传 COS），返回相对路径。"""
     settings = get_settings()
     content = _read_with_limit(file, settings.max_cover_bytes, "封面图")
     mime = _ensure_image(content)
     ext = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}[mime]
 
     rel_path = f"covers/{target_id}.{ext}"
-    abs_path = settings.storage_dir / rel_path
-    abs_path.parent.mkdir(parents=True, exist_ok=True)
-    abs_path.write_bytes(content)
+    _persist(rel_path, content, content_type=mime)
     return rel_path
 
 
@@ -152,10 +158,13 @@ def remove_file(rel_path: str | None) -> None:
 
 
 def remove_cover_with_any_ext(experience_id: str) -> None:
-    """删除任意扩展名的封面图（含预设产生的 svg）。"""
+    """删除任意扩展名的封面图（含预设产生的 svg），COS 与本地同步清理。"""
     settings = get_settings()
     for ext in ("jpg", "png", "webp", "svg"):
-        p = settings.cover_dir / f"{experience_id}.{ext}"
+        rel_path = f"covers/{experience_id}.{ext}"
+        if cos_svc.is_enabled():
+            cos_svc.delete(rel_path)
+        p = settings.storage_dir / rel_path
         if p.is_file():
             p.unlink(missing_ok=True)
 

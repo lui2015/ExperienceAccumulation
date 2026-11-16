@@ -3,7 +3,6 @@ from typing import Annotated
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -60,14 +59,14 @@ def download_cover(
     exp = db.get(Experience, exp_id)
     if not exp or exp.deleted_at is not None or not exp.cover_path:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "封面不存在")
-    abs_path = storage_svc.storage_path(exp.cover_path)
-    if not abs_path.is_file():
+    content = storage_svc.read_file_bytes(exp.cover_path)
+    if content is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "封面文件丢失")
-    ext = abs_path.suffix.lstrip(".")
+    ext = exp.cover_path.rsplit(".", 1)[-1].lower()
     media = {
         "jpg": "image/jpeg",
         "png": "image/png",
         "webp": "image/webp",
         "svg": "image/svg+xml",
     }.get(ext, "application/octet-stream")
-    return FileResponse(abs_path, media_type=media)
+    return Response(content=content, media_type=media)
