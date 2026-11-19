@@ -16,6 +16,12 @@ import type {
   VisitorOut,
 } from './types';
 
+/** 免令牌的「报告详情页完整 HTML」直链（可 window.open / iframe 直接展示）。 */
+export function openHtmlUrl(id: string): string {
+  const prefix = import.meta.env.PROD ? '/experience/api/v1' : '/api/v1';
+  return `${prefix}/open/experiences/${id}/html`;
+}
+
 // ===== Auth =====
 export const authApi = {
   login: (username: string, password: string) =>

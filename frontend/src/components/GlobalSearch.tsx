@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Input, Spin, Empty, Segmented, App as AntdApp } from 'antd';
+import { Input, Spin, Empty, Segmented } from 'antd';
 import { SearchOutlined, FileSearchOutlined } from '@ant-design/icons';
 
-import { categoryApi, experienceApi, searchApi } from '@/api';
+import { categoryApi, openHtmlUrl, searchApi } from '@/api';
 import type { SearchHit } from '@/api/types';
 
 interface Props {
@@ -18,11 +18,10 @@ interface Props {
  * 全站搜索（顶栏中央）。
  * - 输入 250ms 防抖
  * - meta / content 两种模式切换
- * - 结果浮层：分类→分组→标题，点击直接打开 HTML 沙箱链接
+ * - 结果浮层：分类→分组→标题，点击直接打开免令牌完整 HTML 链接
  */
 export default function GlobalSearch({ fullWidth = false, compact = false }: Props) {
   const navigate = useNavigate();
-  const { message } = AntdApp.useApp();
 
   const [q, setQ] = useState('');
   const [debouncedQ, setDebouncedQ] = useState('');
@@ -66,15 +65,10 @@ export default function GlobalSearch({ fullWidth = false, compact = false }: Pro
     return m;
   }, [categories]);
 
-  const handleOpen = async (hit: SearchHit) => {
+  const handleOpen = (hit: SearchHit) => {
     setOpen(false);
-    try {
-      // 直接打开 HTML 沙箱（最直接的"看到内容"路径）
-      const tk = await experienceApi.getHtmlToken(hit.experience_id);
-      window.open(tk.url, '_blank', 'noopener,noreferrer');
-    } catch {
-      message.error('打开失败，请稍后重试');
-    }
+    // 免令牌直连完整 HTML，无需等待 Token 签发
+    window.open(openHtmlUrl(hit.experience_id), '_blank', 'noopener,noreferrer');
   };
 
   const handleJump = (hit: SearchHit) => {

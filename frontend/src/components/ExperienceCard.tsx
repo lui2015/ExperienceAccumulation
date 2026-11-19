@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Dropdown, Tooltip, App as AntdApp } from 'antd';
+import { Dropdown, Tooltip } from 'antd';
 import {
   EditOutlined,
   DeleteOutlined,
@@ -11,7 +11,7 @@ import {
   ShareAltOutlined,
 } from '@ant-design/icons';
 
-import { experienceApi } from '@/api';
+import { openHtmlUrl } from '@/api';
 import type { ExperienceOut } from '@/api/types';
 import ShareModal from './ShareModal';
 
@@ -53,7 +53,6 @@ export default function ExperienceCard({ experience, draggable, categoryName, on
     id: experience.id,
     disabled: !draggable,
   });
-  const { message } = AntdApp.useApp();
   const [shareOpen, setShareOpen] = useState(false);
 
   const style: React.CSSProperties = {
@@ -64,15 +63,9 @@ export default function ExperienceCard({ experience, draggable, categoryName, on
     touchAction: draggable ? 'manipulation' : 'auto',
   };
 
-  const openHtml = async () => {
-    const hide = message.loading('正在签发访问 Token…', 0);
-    try {
-      const tk = await experienceApi.getHtmlToken(experience.id);
-      hide();
-      window.open(tk.url, '_blank', 'noopener,noreferrer');
-    } catch {
-      hide();
-    }
+  const openHtml = () => {
+    // 免令牌直连完整 HTML，无需签发 Token（更快且不受登录态影响）
+    window.open(openHtmlUrl(experience.id), '_blank', 'noopener,noreferrer');
   };
 
   return (
