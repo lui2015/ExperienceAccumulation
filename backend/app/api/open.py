@@ -9,7 +9,7 @@
 读取类
   - GET  /open/experiences          分页读取经验列表（可按分类过滤）
   - GET  /open/experiences/{id}     读取单条经验元数据
-  - GET  /open/experiences/{id}/html 读取经验正文 HTML（text/html）
+  - GET  /open/experiences/{id}/html 读取报告详情页完整 HTML（可浏览器展示/iframe/下载）
   - GET  /open/search               全文搜索（元数据 / 正文）
 管理类
   - GET  /open/stats                调用统计（站主 Cookie 登录后查看）
@@ -66,9 +66,14 @@ class OpenStatsOut(BaseModel):
     today_calls: int
 
 
+class OpenExperienceOut(ExperienceOut):
+    """对外经验元数据：在基础字段上补充可直接展示/下载的 URL。"""
+    html_url: str
+
+
 class OpenExperienceListOut(BaseModel):
     """经验分页列表。"""
-    items: list[ExperienceOut]
+    items: list[OpenExperienceOut]
     total: int
     page: int
     page_size: int
@@ -299,9 +304,9 @@ async def open_create_experience(
 # ============================================================ #
 # 读取类接口（免令牌，仅返回未删除的公开经验）
 # ============================================================ #
-def _exp_to_out(exp: Experience, settings) -> ExperienceOut:
-    """ORM → 对外 schema，cover_url 指向免令牌的开放封面接口。"""
-    return ExperienceOut(
+def _exp_to_out(exp: Experience, settings) -> OpenExperienceOut:
+    """ORM → 对外 schema，cover_url / html_url 均指向免令牌的开放接口。"""
+    return OpenExperienceOut(
         id=exp.id,
         category_id=exp.category_id,
         group_id=exp.group_id,
@@ -317,6 +322,7 @@ def _exp_to_out(exp: Experience, settings) -> ExperienceOut:
         order=exp.order,
         created_at=exp.created_at,
         updated_at=exp.updated_at,
+        html_url=f"{settings.app_root_path}/api/v1/open/experiences/{exp.id}/html",
     )
 
 
@@ -360,10 +366,21 @@ def open_get_experience_html(
     exp_id: str,
     user: Annotated[User, Depends(get_owner_user)],
     db: Annotated[Session, Depends(get_db)],
+    download: bool = Query(False, description="true=作为附件下载；false=内联展示（默认）"),
 ) -> Response:
-    """读取单条经验的正文 HTML（免令牌，text/html）。
+    """读取报告详情页的**完整 HTML 文档**（免令牌）。
 
-    返回原始 HTML 字符串；若经验不存在或正文丢失返回 404。
+    返回的是一份自包含 HTML：含 `<!DOCTYPE html>`、内联 CSS/JS、交互组件，
+    与站内「报告详情页」展示的内容完全一致。可直接用于：
+
+    1. **浏览器直接展示**：把本接口 URL 作为链接或 `<iframe src="...">` 打开，
+       浏览器会按 `text/html` 完整渲染（默认内联模式，无需下载）。
+    2. **程序拉取源码**：`curl` / `fetch` 得到完整 HTML 字符串，保存到本地或
+       注入到自己的页面（注意 HTML 内含 `<script>`，注入前请做安全评估）。
+    3. **下载保存**：加 `?download=true`，响应带 `Content-Disposition: attachment`，
+       浏览器会保存为 `{id}.html`。
+
+    经验不存在或正文丢失返回 404。列表/详情接口返回的 `html_url` 即是本接口地址。
     """
     exp = db.get(Experience, exp_id)
     if not exp or exp.deleted_at is not None or not exp.html_path:
@@ -372,11 +389,14 @@ def open_get_experience_html(
     if content is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "正文文件丢失")
     _record_call(db, user, "/open/experiences/{id}/html", 200)
-    return Response(
-        content=content,
-        media_type="text/html; charset=utf-8",
-        headers={"X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer"},
-    )
+    headers = {
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "no-referrer",
+    }
+    if download:
+        # exp_id 由 gen_uuid 生成（纯十六进制），可安全用于文件名
+        headers["Content-Disposition"] = f'attachment; filename="{exp_id}.html"'
+    return Response(content=content, media_type="text/html; charset=utf-8", headers=headers)
 
 
 @router.get("/experiences/{exp_id}/cover")
@@ -401,12 +421,12 @@ def open_get_experience_cover(
     return Response(content=content, media_type=media)
 
 
-@router.get("/experiences/{exp_id}", response_model=ExperienceOut)
+@router.get("/experiences/{exp_id}", response_model=OpenExperienceOut)
 def open_get_experience(
     exp_id: str,
     user: Annotated[User, Depends(get_owner_user)],
     db: Annotated[Session, Depends(get_db)],
-) -> ExperienceOut:
+) -> OpenExperienceOut:
     """读取单条经验元数据（免令牌）。正文请用 `/html` 子接口。"""
     exp = db.get(Experience, exp_id)
     if not exp or exp.deleted_at is not None:

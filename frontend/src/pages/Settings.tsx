@@ -84,11 +84,13 @@ curl -X POST '${submit}' \\
 curl '${list}?page=1&page_size=20'
 # 单条元数据
 curl '${list}/{id}'
-# 正文 HTML
-curl '${list}/{id}/html'
+# 读取报告详情页完整 HTML（自包含：含 <!DOCTYPE>/内联CSS/JS/交互组件，与站内详情页一致）
+curl '${list}/{id}/html'                    # 内联展示：浏览器打开此 URL 即可完整渲染，也可 <iframe src="此URL">
+curl '${list}/{id}/html?download=true'      # 下载：保存为 {id}.html
 # 搜索（mode=meta 只搜标题/简介，content 含正文）
 curl '${search}?q=关键词&mode=content&limit=20'
-读取列表返回 {items,total,page,page_size,has_more}；正文接口直接返回 HTML 文本。
+读取列表返回 {items,total,page,page_size,has_more}；每条含 html_url（可直接展示的地址）。
+正文接口返回完整 HTML 文档：浏览器直接打开 URL 即完整展示；curl/fetch 得到源码可自行保存或渲染。
 
 ## 完成标准与反馈
 - 写入：返回 HTTP 200 且响应里包含经验的 id、title 即视为成功。把返回的标题与编号反馈给用户，例如：「已为你沉淀经验《xxx》，编号 {id}」。
@@ -247,11 +249,31 @@ export default function SettingsPage() {
                   <div style={{ fontFamily: 'var(--cy-font-mono)', fontSize: 12, lineHeight: 1.9 }}>
                     <div><Text code>GET {apiBase}/open/experiences?page=1&amp;page_size=20</Text> — 经验列表（分页，按时间倒序）</div>
                     <div><Text code>GET {apiBase}/open/experiences/{'{id}'}</Text> — 单条元数据</div>
-                    <div><Text code>GET {apiBase}/open/experiences/{'{id}'}/html</Text> — 正文 HTML</div>
+                    <div><Text code>GET {apiBase}/open/experiences/{'{id}'}/html</Text> — 报告详情页完整 HTML（可展示，见下）</div>
                     <div><Text code>GET {apiBase}/open/experiences/{'{id}'}/cover</Text> — 封面图</div>
                     <div><Text code>GET {apiBase}/open/search?q=关键词&amp;mode=content</Text> — 全文搜索（meta 仅元数据）</div>
                     <Paragraph type="secondary" style={{ margin: '8px 0 0' }}>
-                      列表返回 {'{'}items, total, page, page_size, has_more{'}'}；搜索返回 {'{'}items(experience_id, snippet, score), query{'}'}。
+                      列表返回 {'{'}items, total, page, page_size, has_more{'}'}，每条含 html_url；搜索返回 {'{'}items(experience_id, snippet, score), query{'}'}。
+                    </Paragraph>
+                  </div>
+                ),
+              },
+              {
+                key: 'html',
+                label: <Text strong>如何拉取并展示完整 HTML 报告详情页</Text>,
+                children: (
+                  <div style={{ fontSize: 12, lineHeight: 1.9 }}>
+                    <Paragraph style={{ marginTop: 0, marginBottom: 8 }}>
+                      <Text code>GET {apiBase}/open/experiences/{'{id}'}/html</Text> 返回的是<Text strong>完整 HTML 文档</Text>
+                      （含 <Text code>&lt;!DOCTYPE html&gt;</Text>、内联 CSS/JS、图表与交互组件），与站内报告详情页完全一致。
+                      列表/详情接口每条都带 <Text code>html_url</Text>，可直接使用。三种展示方式：
+                    </Paragraph>
+                    <div>① <Text strong>浏览器直接打开</Text>：把 <Text code>html_url</Text> 作为链接，或 <Text code>window.open(url)</Text>，按 text/html 完整渲染。</div>
+                    <div>② <Text strong>iframe 嵌入自己的系统</Text>：<Text code>&lt;iframe src="{apiBase}/open/experiences/"+id+"/html" width="100%" height="800px"&gt;&lt;/iframe&gt;</Text>。</div>
+                    <div>③ <Text strong>程序拉取源码</Text>：<Text code>curl url &gt; report.html</Text> 保存，或前端 fetch 后自行渲染。</div>
+                    <div>④ <Text strong>下载为文件</Text>：<Text code>url + '?download=true'</Text> 触发浏览器保存为 {'{'}id{'}'}.html。</div>
+                    <Paragraph type="secondary" style={{ margin: '8px 0 0' }}>
+                      注意：HTML 内含 &lt;script&gt; 交互逻辑。若用 iframe 展示无需处理；若注入自有页面请用沙箱 iframe 或先做安全过滤。
                     </Paragraph>
                   </div>
                 ),
@@ -279,8 +301,10 @@ export default function SettingsPage() {
                       `# 经验列表`,
                       `curl '${apiBase}/open/experiences?page=1&page_size=20'`,
                       ``,
-                      `# 读取正文 HTML`,
-                      `curl '${apiBase}/open/experiences/{id}/html'`,
+                      `# 拉取报告详情页完整 HTML（浏览器打开此 URL 即完整展示）`,
+                      `curl '${apiBase}/open/experiences/{id}/html' > report.html`,
+                      `# 下载为附件 / iframe 内嵌用同一个 URL（加 ?download=true 可下载）`,
+                      `curl '${apiBase}/open/experiences/{id}/html?download=true' -o report.html`,
                       ``,
                       `# 搜索`,
                       `curl '${apiBase}/open/search?q=AI&mode=content&limit=10'`,
