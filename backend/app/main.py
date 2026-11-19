@@ -19,10 +19,17 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    # root_path 下 Swagger 的 "Try it out" 需要 servers 才能请求到正确前缀
+    servers = [{"url": settings.app_root_path}] if settings.app_root_path else None
     app = FastAPI(
-        title="Experience Accumulation API",
-        version="1.0.0",
+        title="Experience Accumulation Open API",
+        description=(
+            "经验沉淀站点开放接口。读取与写入均免令牌；"
+            "`/api/v1/open/*` 为开放接口，`/api/v1/experiences/*` 等为站主后台接口（需登录）。"
+        ),
+        version="1.1.0",
         root_path=settings.app_root_path,
+        servers=servers,
         lifespan=lifespan,
     )
 

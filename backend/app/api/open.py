@@ -1,22 +1,32 @@
 """开放接口（Open API）
 ===================
 
-面向 AI 编程助手 / 自动化脚本的极简写入接口，无需任何令牌，可直接调用：
-  - GET  /open/meta        读取站点元数据（分类、封面预设）
-  - POST /open/experiences 新建一条经验（表单 / JSON），统一归属站主账号
-  - GET  /open/stats       调用统计（站主 Cookie 登录后查看）
+面向 AI 编程助手 / 外部系统的极简接口，无需任何令牌，可直接调用：
 
-设计取舍：为简化调用、方便 AI 直接提交，开放接口不再校验令牌，所有写入统一
-归属到站主（role=owner）账号，可在后台统一管理。
+写入类
+  - POST /open/experiences          新建一条经验（表单），统一归属站主账号
+  - GET  /open/meta                 读取站点元数据（分类、封面预设）
+读取类
+  - GET  /open/experiences          分页读取经验列表（可按分类过滤）
+  - GET  /open/experiences/{id}     读取单条经验元数据
+  - GET  /open/experiences/{id}/html 读取经验正文 HTML（text/html）
+  - GET  /open/search               全文搜索（元数据 / 正文）
+管理类
+  - GET  /open/stats                调用统计（站主 Cookie 登录后查看）
+
+设计取舍：为简化调用、方便 AI 与第三方直接接入，开放接口不校验令牌，所有写入
+统一归属到站主（role=owner）账号，可在后台统一管理；读取仅返回已发布（未删除）
+经验，不含任何用户隐私数据。
 """
 from __future__ import annotations
 
 import re
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, status, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, status, UploadFile
+from fastapi.responses import Response
 from pydantic import BaseModel
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -54,6 +64,28 @@ class OpenStatsOut(BaseModel):
     """开放接口调用统计。"""
     total_calls: int
     today_calls: int
+
+
+class OpenExperienceListOut(BaseModel):
+    """经验分页列表。"""
+    items: list[ExperienceOut]
+    total: int
+    page: int
+    page_size: int
+    has_more: bool
+
+
+class OpenSearchItem(BaseModel):
+    """搜索命中项。"""
+    experience_id: str
+    snippet: str
+    score: float
+
+
+class OpenSearchOut(BaseModel):
+    """搜索结果。"""
+    items: list[OpenSearchItem]
+    query: str
 
 
 # ----------------------------- 免令牌：统一归属站主 ----------------------------- #
@@ -261,4 +293,144 @@ async def open_create_experience(
         order=exp.order,
         created_at=exp.created_at,
         updated_at=exp.updated_at,
+    )
+
+
+# ============================================================ #
+# 读取类接口（免令牌，仅返回未删除的公开经验）
+# ============================================================ #
+def _exp_to_out(exp: Experience, settings) -> ExperienceOut:
+    """ORM → 对外 schema，cover_url 指向免令牌的开放封面接口。"""
+    return ExperienceOut(
+        id=exp.id,
+        category_id=exp.category_id,
+        group_id=exp.group_id,
+        title=exp.title,
+        summary=exp.summary,
+        cover_url=(
+            f"{settings.app_root_path}/api/v1/open/experiences/{exp.id}/cover"
+            if exp.cover_path
+            else None
+        ),
+        has_cover=bool(exp.cover_path),
+        html_size=exp.html_size,
+        order=exp.order,
+        created_at=exp.created_at,
+        updated_at=exp.updated_at,
+    )
+
+
+@router.get("/experiences", response_model=OpenExperienceListOut)
+def open_list_experiences(
+    user: Annotated[User, Depends(get_owner_user)],
+    db: Annotated[Session, Depends(get_db)],
+    category_id: str | None = Query(None, description="按分类 ID 过滤；不传则返回全站经验"),
+    page: int = Query(1, ge=1, description="页码，从 1 开始"),
+    page_size: int = Query(20, ge=1, le=100, description="每页条数，1–100"),
+) -> OpenExperienceListOut:
+    """分页读取经验列表（免令牌）。
+
+    按发布时间倒序返回；每条含 id/title/summary/分类/封面地址等元数据，
+    正文请用 `GET /open/experiences/{id}/html`。
+    """
+    _record_call(db, user, "/open/experiences(GET)", 200)
+    filters = [Experience.deleted_at.is_(None)]
+    if category_id:
+        filters.append(Experience.category_id == category_id)
+    total = db.scalar(select(func.count(Experience.id)).where(*filters)) or 0
+    rows = db.execute(
+        select(Experience)
+        .where(*filters)
+        .order_by(Experience.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    ).scalars().all()
+    settings = get_settings()
+    return OpenExperienceListOut(
+        items=[_exp_to_out(e, settings) for e in rows],
+        total=total,
+        page=page,
+        page_size=page_size,
+        has_more=page * page_size < total,
+    )
+
+
+@router.get("/experiences/{exp_id}/html", response_class=Response)
+def open_get_experience_html(
+    exp_id: str,
+    user: Annotated[User, Depends(get_owner_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> Response:
+    """读取单条经验的正文 HTML（免令牌，text/html）。
+
+    返回原始 HTML 字符串；若经验不存在或正文丢失返回 404。
+    """
+    exp = db.get(Experience, exp_id)
+    if not exp or exp.deleted_at is not None or not exp.html_path:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "经验不存在")
+    content = storage_svc.read_file_bytes(exp.html_path)
+    if content is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "正文文件丢失")
+    _record_call(db, user, "/open/experiences/{id}/html", 200)
+    return Response(
+        content=content,
+        media_type="text/html; charset=utf-8",
+        headers={"X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer"},
+    )
+
+
+@router.get("/experiences/{exp_id}/cover")
+def open_get_experience_cover(
+    exp_id: str,
+    user: Annotated[User, Depends(get_owner_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> Response:
+    """读取单条经验的封面图（免令牌）。供开放接口返回的 cover_url 直接使用。"""
+    exp = db.get(Experience, exp_id)
+    if not exp or exp.deleted_at is not None or not exp.cover_path:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "封面不存在")
+    content = storage_svc.read_file_bytes(exp.cover_path)
+    if content is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "封面文件丢失")
+    ext = exp.cover_path.rsplit(".", 1)[-1].lower()
+    media = {
+        "jpg": "image/jpeg", "png": "image/png",
+        "webp": "image/webp", "svg": "image/svg+xml",
+    }.get(ext, "application/octet-stream")
+    _record_call(db, user, "/open/experiences/{id}/cover", 200)
+    return Response(content=content, media_type=media)
+
+
+@router.get("/experiences/{exp_id}", response_model=ExperienceOut)
+def open_get_experience(
+    exp_id: str,
+    user: Annotated[User, Depends(get_owner_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> ExperienceOut:
+    """读取单条经验元数据（免令牌）。正文请用 `/html` 子接口。"""
+    exp = db.get(Experience, exp_id)
+    if not exp or exp.deleted_at is not None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "经验不存在")
+    _record_call(db, user, "/open/experiences/{id}", 200)
+    return _exp_to_out(exp, get_settings())
+
+
+@router.get("/search", response_model=OpenSearchOut)
+def open_search(
+    user: Annotated[User, Depends(get_owner_user)],
+    db: Annotated[Session, Depends(get_db)],
+    q: str = Query(..., min_length=1, max_length=100, description="搜索关键词"),
+    mode: str = Query("content", pattern="^(meta|content)$", description="meta=仅元数据；content=含正文"),
+    limit: int = Query(20, ge=1, le=100, description="返回条数"),
+) -> OpenSearchOut:
+    """全文搜索公开经验（免令牌）。
+
+    `mode=meta` 只匹配标题/简介/分组；`mode=content`  additionally 匹配正文，
+    返回带 `<mark>` 高亮的片段。
+    """
+    _record_call(db, user, "/open/search", 200)
+    hits = search_svc.search(db, q, mode=mode, limit=limit)
+    return OpenSearchOut(
+        items=[OpenSearchItem(**h) for h in hits],
+        query=q,
     )
